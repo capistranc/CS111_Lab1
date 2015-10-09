@@ -1,0 +1,4 @@
+x
+test temp->line = 1
+test temp->line = 2
+../timetrash: command reading not yet implemented

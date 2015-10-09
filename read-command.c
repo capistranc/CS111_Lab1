@@ -2,17 +2,24 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <string.h>
+#include <stdbool.h>
 
+#include "alloc.h"
 #include "command.h"
 #include "command-internals.h"
 
 #include <error.h>
 
 
-/* FIXME: You may need to add #include directives, macro definitions,
-static function definitions, etc.  */
+////////////////Structure Definitions
+/////////////////////////////////////////////
+struct token
+{
+	token_type type;
+	char* word;
+	int line;
+};
 
 struct linked_list
 {
@@ -23,14 +30,29 @@ struct linked_list
 	//void (*RemoveAtTail) ();
 	//int (*length) ();
 	//int (*empty) ();
+	
 };
 
 struct Node
 {
+	struct token *t;
 	struct command *child;
 	struct Node *next;
 	struct Node *prev;
 };
+
+
+
+
+struct command_stream
+{
+	//linked list of trees
+	struct linked_list *forrest;
+};
+
+////////////////Helper Functions
+/////////////////////////////////////////////
+
 
 struct linked_list* get_new_list() {
 	struct linked_list* new_list = (struct linked_list*)malloc(sizeof(struct linked_list));
@@ -150,15 +172,14 @@ temp = temp->next;
 printf("\n");
 }*/
 
-
-/* FIXME: Define the type 'struct command_stream' here.  This should
-complete the incomplete type declaration in command.h.  */
-
-struct command_stream
+bool isValidChar(char c)
 {
-	//linked list of trees
-	struct linked_list *forrest;
-};
+	return (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') ||
+		c == '!' || c == '%' || c == '+' || c == ',' || c == '-' || c == '.' || c == '/' ||
+		c == ':' || c == '@' || c == '^' || c == '_');
+}
+//////////Primary Functions//////////////////
+////////////////////////////////////////////
 
 int valid_operator(char c, char* word, enum command_type *cmd, struct linked_list *cmd_stack,
 	int(*get_next_byte) (void *), void *get_next_byte_argument)
@@ -207,7 +228,7 @@ int valid_operator(char c, char* word, enum command_type *cmd, struct linked_lis
 		if (*cmd == PIPE_COMMAND) {
 			//tmp = (char *)malloc(sizeof(char) * strlen(&next))
 			//*tmp = next;
-			word = strcat(word, &next);
+			strcat(word, &next);
 		}
 	}
 	return retval;
@@ -220,13 +241,312 @@ struct command* combine(struct command* cmd1, struct command* cmd2, struct comma
 	return op;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////CHRIS'S FUNCTIONS/////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+
+void grammarCheck(struct linked_list *list)
+{
+	struct Node* currentNode = list->head;
+
+	int scope = 0;
+	int scope_line = 0;
+
+	while (currentNode != NULL)
+	{
+		token_type this_tok_type = current_Node->child->tok_type;
+		enum command_type this_type = currentNode->child->type;
+		token_type next_tok_type = currentNode->next->child->tok_type;
+		enum command_type next_type = currentNode->next->child->type;
+		if (currentNode->prev == NULL) {
+			token_type prev_tok_type = currentNode->prev->child->tok_type;
+			enum command_type prev_type = currentNode->prev->child->type;
+		}
+		else {
+			token_type prev_tok_type = -1;
+			enum command_type command_type = -1;
+		}		
+		switch (this_tok_type)
+		{
+			case WORD:
+				//words are always fine
+				break;
+			case SEMICOLON:
+			case PIPE:
+			case AND:
+			case OR: {
+				if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) {
+					goto default;
+				}
+				if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
+					goto default;
+				}
+				break;
+			}
+			case LEFT_PAREN: {
+				scope++;
+				if (scope_line == 0) {
+					scope_line = currentNode->child->line;
+				}
+				break;
+			}
+			case RIGHT_PAREN: {
+				scope--;
+				if (scope < 0) {
+					goto default;
+				}
+				if (scope == 0) {
+					scope_line = 0;
+				}
+				break;
+			}
+			case: LEFT_ARROW
+			case: RIGHT_ARROW{
+				int consecutive_arrow_count = 1;
+				if (next_type != SIMPLE_COMMAND && next != LEFT_PAREN) {
+					if (next_tok_type == this_tok_type) {
+						consecutive_arrow_count++;
+					}
+					else {
+						goto default;
+					}
+				}
+				if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
+					if (currentNode->previous->tok_type == currentNode->tok_type) {
+						consecutive_arrow_count++;
+					}
+					else {
+						goto default;
+					}
+				}
+				if (consecutive_arrow_count > 2) {
+					goto default;
+				}
+				break;
+			}
+			case: NEWLINE{
+				//if previous command is operator, remove this node from list
+				if (currentNode->previous->type != SIMPLE_COMMAND && currentNode->previous->type != SIMPLE_COMMAND) {
+					currentNode->previous->next = currentNode->next;
+					currentNode->next->previous = currentNode->previous;
+				}
+			//if next command is operator throw error
+			if (currentNode->next->type != SIMPLE_COMMAND && currentNode->next->type != SIMPLE_COMMAND) {
+				goto default;
+			}
+			break;
+			default: {
+				error(1, 0, ";%d Bad Syntax", currentNode->line);
+				break;
+			}
+		}
+		currentNode = currentNode->next; // Go To last Node
+		}
+	}
+
+	if (scope != 0) {
+			error(1, 0, ";%d Bad Syntax", scope_line);
+	}
+}
+
+
+
+struct linked_list* create_token_list(char* buffer)
+{
+	struct linked_list *tok_list = get_new_list(); //
+	int iter = 0;
+	int line_num = 1;
+
+	char current;
+	char next;
+
+	while ((buffer[iter] != '\0') && (buffer[iter] != EOF))
+	{
+		command_t temp = (command_t)checked_malloc(sizeof(command_t));
+		current = buffer[iter];
+		next = buffer[iter + 1];
+
+		switch (current)
+		{
+			//Skip blank spaces and new lines
+		case '\t':
+		case ' ':
+			iter++;
+			continue;
+
+		case ';':
+			temp->tok_type = SEMICOLON;
+			temp->type = SEQUENCE_COMMAND;
+			break;
+
+		case '\n':
+			if (current == next)
+			{
+				temp->tok_type = -1;
+				temp->type = -1;
+			}
+			else {
+				temp->tok_type = NEWLINE;
+				temp->type = SEQUENCE_COMMAND;
+				line_num++;
+			}
+			break;
+
+		case '|':
+			if (current == next)
+			{
+				temp->tok_type = OR;
+				temp->type = OR_COMMAND;
+				iter++;
+				//fprintf(stderr, "WE are in OReo CITY %d\n", iter);
+			}
+			else
+			{
+				temp->tok_type = PIPE;
+				temp->type = PIPE_COMMAND;
+				//fprintf(stderr, "Doese this PIPE ever get hit at %d\n", iter);
+			}
+			break;
+
+		case '&':
+			if (current == next)
+			{
+				temp->tok_type = AND;
+				temp->type = AND_COMMAND;
+				iter++;
+				//fprintf(stderr, "Does this statement ever get hit at %d\n", iter);
+				break;
+			}
+			else
+			{
+				temp->tok_type = OTHER;
+				//fprintf(stderr, "Does this OTHER statement get hit at %d\n", iter);
+			}
+			break;
+
+		case '(':
+			temp->tok_type = RIGHT_PAREN;
+			temp->type = SUBSHELL_COMMAND;
+			break;
+
+		case ')':
+			temp->tok_type = LEFT_PAREN;
+			temp->type = SUBSHELL_COMMAND;
+			break;
+
+		case '<':
+			temp->tok_type = LEFT_ARROW;
+			temp->type = SIMPLE_COMMAND;
+			break;
+
+		case '>':
+			temp->tok_type = RIGHT_ARROW;
+			temp->type = SIMPLE_COMMAND;
+			break;
+
+		default:
+			temp->tok_type = OTHER;
+			break;
+		}
+
+		int len = 1;
+
+		//Case that the token is a word
+		if (isValidChar(current))
+		{
+			temp->tok_type = WORD;
+			temp->type = SIMPLE_COMMAND;
+			//Gets the length of the word within the buffer.
+			while (isValidChar(buffer[iter + len]))
+				len++;
+
+			//Allocates memory for the string stored in the token, accounting for NULL byte at end.
+			temp->u.word = (char **)checked_malloc(sizeof(char*));
+			
+			char *minibuf = (char *)checked_malloc(sizeof(char *) * (len + 1));
+
+			int i;
+			for (i = 0; i < len; i++)
+			{
+				minibuf[i] = buffer[iter + i];
+			}
+			minibuf[len] = '\0';
+
+			*(temp->u.word) = minibuf;
+			iter += len - 1;
+			//free(minibuf);  WE STIOOPL USE TJHSIO FMENRSFFN?BSA
+			
+		}
+		else if (temp->tok_type == OTHER)
+		{
+			fprintf(stderr, "The following chars are a problem: current: %c, next: %c", current, next);
+			error(1, 0, "Unable to tokenize string at %d", iter);
+			exit(1);
+		}
+		
+		temp->line = line_num;
+		//fprintf(stderr, "test temp->line = %d\n", temp->line);
+
+
+		InsertAtTail(temp, tok_list);
+
+		//free(temp)  WE STILL USE THIS MEMRORNYTY
+		iter++;
+	}
+
+	return tok_list;
+}
+
+
+//Create_buffer simply stores the file into a buffer
+char* create_buffer(int(*get_next_byte) (void *), void *get_next_byte_argument)
+{
+	size_t iter = 0;
+	size_t buffer_size = 1024;
+	char *buffer = (char *)checked_malloc(buffer_size);
+	char current_byte;
+
+	//Iterates through entire file
+	while ((current_byte = get_next_byte(get_next_byte_argument)) != EOF)
+	{
+		//Skips over characters included in a comment
+		if (current_byte == '#')
+		{
+			while ((current_byte = get_next_byte(get_next_byte_argument)) != '\n')
+			{
+				if (current_byte == EOF)
+					break;
+				//fprintf(stderr, "%d", current_byte);
+				//Continue iterating until the end of the comment is reached.
+			}
+			continue;
+		}
+
+		buffer[iter++] = current_byte;
+
+		if (iter == buffer_size)
+			buffer = (char *)checked_grow_alloc(buffer, &buffer_size);
+	}
+	buffer[iter] = '\0';
+
+	fprintf(stderr, "%s", buffer);
+	return buffer;
+}
+
 
 command_stream_t
 make_command_stream(int(*get_next_byte) (void *),
 	void *get_next_byte_argument)
 {
+	char *buffer;
+	buffer = create_buffer(get_next_byte, get_next_byte_argument);
+	struct linked_list *op_stack = create_token_list(buffer);
+	//free(buffer);
+	//grammarCheck(op_stack);
+	/*
 	int done = 0;
-	char* word;
+	char* word = (char *) checked_malloc(sizeof(char *));
 	char c = (char)get_next_byte(get_next_byte_argument);
 	struct linked_list *op_stack = get_new_list();
 	struct linked_list *cmd_stack = get_new_list();
@@ -238,78 +558,80 @@ make_command_stream(int(*get_next_byte) (void *),
 	struct command* cmd1;
 	struct command* cmd2;
 	while (!done) {
-		while (!feof(get_next_byte_argument)) {
-			//If c is special token(i.e. operator), push to command stack
-			if (valid_operator(c, word, type, cmd_stack, get_next_byte, get_next_byte_argument)) {
-				struct command new_op;
-				new_op.type = *type;
-				//If operator stack is empty
-				if (empty(op_stack)) {
-					//append c to operator stack
-					InsertAtHead(&new_op, op_stack);
-				}
-				else {
-					//while the precedence of the top_operater is greater than than
-					//the precedence of c, pop the operator and command stacks to 
-					//evaulate both/build thier trees in the correct order
-					top_op = peek(op_stack);
-					//can compare enumerated types beacuse converted to ints in assembly
-					while ((top_op != NULL) && (new_op.type <= top_op->type)) {
-						op = RemoveAtHead(op_stack);
-						cmd2 = RemoveAtHead(cmd_stack);
-						cmd1 = RemoveAtHead(cmd_stack);
-						//for this lab combine means setting the children pointers
-						//of the operator to the two commands and pushing the
-						//operator onto the command stack
-						//          new_cmd = combine(cmd1, cmd2, op);
-						op->u.command[0] = cmd1;
-						op->u.command[1] = cmd2;
-						//here i operate on the highest precedent command first
-						//although in my notes i operate weith c instdead (idk why)
-						InsertAtHead(op, cmd_stack);
-						top_op = peek(op_stack);
-						if (top_op == NULL)
-							break;
-					}
-					//c is now the highest precedence operator and should be evaulate
-					//first so we push onto operator stack now
-					InsertAtHead(&new_op, op_stack);
-				}
-				//whever we encounter an operator i.e. tokenized character we
-				//push the previous series of nontokenized characters (i.e word)
-				//onto the command stack
-				//cmd_stack.push(word); -- NOW HANDLED BY VALID_OPERATOR FUNCTION
-			}
-			else {
-				//c is a non tokenized character so we just add it onto the existing
-				//sequence of nontokenized characters (i.e the word)
-				//char* tmp;
-				//tmp = (char*)malloc(sizeof(char) * strlen(c))
-				//*tmp = c;  
-				word = strcat(word, &c);
-				if (c == '\n' && word[strlen(word) - 1] == '\n') {
-					break;
-				}
-			}
-		}
-		//file stream empty so we now just finish off operator and command stacks
-		//should end with empty op stack and commmand stack with answer in it
-		//for our purposes would be pointer to head node of command tree
-		while (!empty(op_stack)) {
-			//algorithm works the same way as before with the operators
-			op = RemoveAtHead(op_stack);
-			cmd2 = RemoveAtHead(cmd_stack);
-			cmd1 = RemoveAtHead(cmd_stack);
-			//new_cmd = combine(cmd1, cmd2, op);
-			op->u.command[0] = cmd1;
-			op->u.command[1] = cmd2;
-			InsertAtHead(op, cmd_stack);
-		}
-		struct command *final_cmd_tree = RemoveAtHead(cmd_stack);
-		InsertAtHead(final_cmd_tree, cmd_stream->forrest);
+	while (!feof(get_next_byte_argument)) {
+	//If c is special token(i.e. operator), push to command stack
+	if (valid_operator(c, word, type, cmd_stack, get_next_byte, get_next_byte_argument)) {
+	struct command new_op;
+	new_op.type = *type;
+	//If operator stack is empty
+	if (empty(op_stack)) {
+	//append c to operator stack
+	InsertAtHead(&new_op, op_stack);
+	}
+	else {
+	//while the precedence of the top_operater is greater than than
+	//the precedence of c, pop the operator and command stacks to
+	//evaulate both/build thier trees in the correct order
+	top_op = peek(op_stack);
+	//can compare enumerated types beacuse converted to ints in assembly
+	while ((top_op != NULL) && (new_op.type <= top_op->type)) {
+	op = RemoveAtHead(op_stack);
+	cmd2 = RemoveAtHead(cmd_stack);
+	cmd1 = RemoveAtHead(cmd_stack);
+	//for this lab combine means setting the children pointers
+	//of the operator to the two commands and pushing the
+	//operator onto the command stack
+	//          new_cmd = combine(cmd1, cmd2, op);
+	op->u.command[0] = cmd1;
+	op->u.command[1] = cmd2;
+	//here i operate on the highest precedent command first
+	//although in my notes i operate weith c instdead (idk why)
+	InsertAtHead(op, cmd_stack);
+	top_op = peek(op_stack);
+	if (top_op == NULL)
+	break;
+	}
+	//c is now the highest precedence operator and should be evaulate
+	//first so we push onto operator stack now
+	InsertAtHead(&new_op, op_stack);
+	}
+	//whever we encounter an operator i.e. tokenized character we
+	//push the previous series of nontokenized characters (i.e word)
+	//onto the command stack
+	//cmd_stack.push(word); -- NOW HANDLED BY VALID_OPERATOR FUNCTION
+	}
+	else {
+	//c is a non tokenized character so we just add it onto the existing
+	//sequence of nontokenized characters (i.e the word)
+	char* tmp;
+	tmp = (char*)malloc(sizeof(char) * strlen(c))
+	 *tmp = c;
+	strcat(word, &c);
+	if (c == '\n' && word[strlen(word) - 1] == '\n') {
+	break;
+	}
+	}
+	}
+	//file stream empty so we now just finish off operator and command stacks
+	//should end with empty op stack and commmand stack with answer in it
+	//for our purposes would be pointer to head node of command tree
+	while (!empty(op_stack)) {
+	//algorithm works the same way as before with the operators
+	op = RemoveAtHead(op_stack);
+	cmd2 = RemoveAtHead(cmd_stack);
+	cmd1 = RemoveAtHead(cmd_stack);
+	//new_cmd = combine(cmd1, cmd2, op);
+	op->u.command[0] = cmd1;
+	op->u.command[1] = cmd2;
+	InsertAtHead(op, cmd_stack);
+	}
+	struct command *final_cmd_tree = RemoveAtHead(cmd_stack);
+	InsertAtHead(final_cmd_tree, cmd_stream->forrest);
 	}
 
-	return (command_stream_t)cmd_stream;
+	*/
+	error(1, 0, "command reading not yet implemented");
+	return 0; //(command_stream_t)cmd_stream;
 }
 
 command_t
@@ -318,5 +640,9 @@ read_command_stream(command_stream_t s)
 	/* FIXME: Replace this with your implementation too.  */
 	//error (1, 0, "command reading not yet implemented");
 	//return 0;
-	return RemoveAtHead(s->forrest);
+	command_t cmd;
+	if ((cmd = RemoveAtHead(s->forrest)) == NULL) {
+		return 0;
+	}
+	return cmd;
 }

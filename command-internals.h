@@ -1,4 +1,18 @@
 // UCLA CS 111 Lab 1 command internals
+typedef enum token_type
+{
+	WORD,
+	SEMICOLON,
+	PIPE,
+	AND,
+	OR,
+	LEFT_PAREN,
+	RIGHT_PAREN,
+	LEFT_ARROW,
+	RIGHT_ARROW,
+	NEWLINE,
+	OTHER
+}token_type;
 
 enum command_type
   {
@@ -14,7 +28,10 @@ enum command_type
 struct command
 {
   enum command_type type;
+  token_type tok_type;
+  int line;
 
+  
   // Exit status, or -1 if not known (e.g., because it has not exited yet).
   int status;
 

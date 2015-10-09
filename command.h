@@ -2,31 +2,11 @@
 
 typedef struct command *command_t;
 typedef struct command_stream *command_stream_t;
-typedef struct token token;
-typedef struct token_list* token_list_t;
-typedef struct token_list token_list;
-
-
-typedef enum token_type
-{
-	WORD,
-	SEMICOLON,
-	PIPE,
-	AND,
-	OR,
-	LEFT_PAREN,
-	RIGHT_PAREN,
-	LEFT_ARROW,
-	RIGHT_ARROW,
-	NEWLINE,
-	OTHER
-}token_type;
-
 
 //User Added Functions
 char* make_buffer(int(*get_next_byte) (void *), void *get_next_byte_argument);
 
-token_list_t create_token_list(char* buffer);
+struct linked_list* create_token_list(char* buffer);
 
 /* Create a command stream from LABEL, GETBYTE, and ARG.  A reader of
    the command stream will invoke GETBYTE (ARG) to get the next byte.

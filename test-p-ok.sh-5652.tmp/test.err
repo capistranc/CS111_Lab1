@@ -1,0 +1,114 @@
+true
+
+g++ -c foo.c
+
+: : :
+
+cat < /etc/passwd | tr a-z A-Z | sort -u || echo sort failed!
+
+a b<c > d
+
+cat < /etc/passwd | tr a-z A-Z | sort -u > out || echo sort failed!
+
+a&&b||
+ c &&
+  d | e && f|
+
+g<h
+
+a<b>c|d<e>f|g<h>i
+test temp->line = 1
+test temp->line = 1
+test temp->line = 2
+test temp->line = 2
+test temp->line = 2
+test temp->line = 2
+test temp->line = 2
+test temp->line = 3
+test temp->line = 3
+test temp->line = 3
+test temp->line = 3
+test temp->line = 3
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 4
+test temp->line = 5
+test temp->line = 5
+test temp->line = 5
+test temp->line = 5
+test temp->line = 5
+test temp->line = 5
+test temp->line = 5
+test temp->line = 5
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 6
+test temp->line = 7
+test temp->line = 7
+test temp->line = 7
+test temp->line = 7
+test temp->line = 7
+test temp->line = 8
+test temp->line = 8
+test temp->line = 8
+test temp->line = 9
+test temp->line = 9
+test temp->line = 9
+test temp->line = 9
+test temp->line = 9
+test temp->line = 9
+test temp->line = 9
+test temp->line = 9
+test temp->line = 10
+test temp->line = 10
+test temp->line = 10
+test temp->line = 10
+test temp->line = 10
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 11
+test temp->line = 12
+../timetrash: command reading not yet implemented
