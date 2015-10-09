@@ -255,17 +255,24 @@ void grammarCheck(struct linked_list *list)
 
 	while (currentNode != NULL)
 	{
-		token_type this_tok_type = current_Node->child->tok_type;
-		enum command_type this_type = currentNode->child->type;
-		token_type next_tok_type = currentNode->next->child->tok_type;
-		enum command_type next_type = currentNode->next->child->type;
-		if (currentNode->prev == NULL) {
-			token_type prev_tok_type = currentNode->prev->child->tok_type;
-			enum command_type prev_type = currentNode->prev->child->type;
+		token_type this_tok_type;
+		token_type next_tok_type;
+		token_type prev_tok_type;
+		enum command_type this_type;
+		enum command_type next_type;
+		enum command_type prev_type;
+
+		this_tok_type = currentNode->child->tok_type;
+		this_type = currentNode->child->type;
+		next_tok_type = currentNode->next->child->tok_type;
+		next_type = currentNode->next->child->type;
+		if (currentNode->prev != NULL) {
+			prev_tok_type = currentNode->prev->child->tok_type;
+			prev_type = currentNode->prev->child->type;
 		}
 		else {
-			token_type prev_tok_type = -1;
-			enum command_type command_type = -1;
+			prev_tok_type = -1;
+			prev_type = -1;
 		}		
 		switch (this_tok_type)
 		{
@@ -277,10 +284,10 @@ void grammarCheck(struct linked_list *list)
 			case AND:
 			case OR: {
 				if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) {
-					goto default;
+					goto end_case;
 				}
 				if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
-					goto default;
+					goto end_case;
 				}
 				break;
 			}
@@ -294,55 +301,58 @@ void grammarCheck(struct linked_list *list)
 			case RIGHT_PAREN: {
 				scope--;
 				if (scope < 0) {
-					goto default;
+					goto end_case;
 				}
 				if (scope == 0) {
 					scope_line = 0;
 				}
 				break;
 			}
-			case: LEFT_ARROW
-			case: RIGHT_ARROW{
+			case LEFT_ARROW:
+			case RIGHT_ARROW: {
 				int consecutive_arrow_count = 1;
-				if (next_type != SIMPLE_COMMAND && next != LEFT_PAREN) {
+				if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) {
 					if (next_tok_type == this_tok_type) {
 						consecutive_arrow_count++;
 					}
 					else {
-						goto default;
+						goto end_case;
 					}
 				}
 				if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
-					if (currentNode->previous->tok_type == currentNode->tok_type) {
+					if (prev_tok_type == this_tok_type) {
 						consecutive_arrow_count++;
 					}
 					else {
-						goto default;
+						goto end_case;
 					}
 				}
 				if (consecutive_arrow_count > 2) {
-					goto default;
+					goto end_case;
 				}
 				break;
 			}
-			case: NEWLINE{
+			case NEWLINE: {
 				//if previous command is operator, remove this node from list
-				if (currentNode->previous->type != SIMPLE_COMMAND && currentNode->previous->type != SIMPLE_COMMAND) {
-					currentNode->previous->next = currentNode->next;
-					currentNode->next->previous = currentNode->previous;
+				if (prev_type != SIMPLE_COMMAND && prev_type != SUBSHELL_COMMAND) {
+					currentNode->prev->next = currentNode->next;
+					currentNode->next->prev = currentNode->prev;
 				}
-			//if next command is operator throw error
-			if (currentNode->next->type != SIMPLE_COMMAND && currentNode->next->type != SIMPLE_COMMAND) {
-				goto default;
+				//if next command is operator throw error
+				if (next_type != SIMPLE_COMMAND && next_type != SUBSHELL_COMMAND) {
+					goto end_case;
+				}
+				break;
 			}
-			break;
 			default: {
-				error(1, 0, ";%d Bad Syntax", currentNode->line);
+				error(1, 0, ";%d Bad Syntax", currentNode->child->line);
 				break;
 			}
 		}
+
+		end_case: error(1, 0, ";%d Bad Syntax", currentNode->child->line);
+		
 		currentNode = currentNode->next; // Go To last Node
-		}
 	}
 
 	if (scope != 0) {
@@ -543,7 +553,7 @@ make_command_stream(int(*get_next_byte) (void *),
 	buffer = create_buffer(get_next_byte, get_next_byte_argument);
 	struct linked_list *op_stack = create_token_list(buffer);
 	//free(buffer);
-	//grammarCheck(op_stack);
+	grammarCheck(op_stack);
 	/*
 	int done = 0;
 	char* word = (char *) checked_malloc(sizeof(char *));
