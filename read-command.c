@@ -82,12 +82,14 @@ struct command* RemoveAtHead(struct linked_list *list)
 	if (list->head == NULL) {
 		return NULL;
 	}
+	struct command* retval;
 	if (list->head->next == NULL) {
-		free(list->head);
-		list->head = NULL;
-		return list->head->child;;
+	  retval = list->head->child;
+	  free(list->head);
+	  list->head = NULL;
+	  return retval;
 	}
-	struct command* retval = list->head->child;
+	retval = list->head->child;
 	list->head = list->head->next;
 	free(list->head->prev);
 	list->head->prev = NULL;
@@ -267,7 +269,8 @@ void grammarCheck(struct linked_list *list)
 		else {
 			prev_tok_type = -1;
 			prev_type = -1;
-		}		
+		}
+		
 		switch (this_tok_type)
 		{
 			case WORD:
@@ -636,7 +639,7 @@ make_command_stream(int(*get_next_byte) (void *),
 		}
 		InsertAtHead(complete_cmd_tree, cmd_stream->forrest);
 	}
-	
+       
 	error (1, 0, "command reading not yet implemented");
 	return 0;
 	//return (command_stream_t)cmd_stream;
