@@ -345,12 +345,13 @@ void grammarCheck(struct linked_list *list)
 				break;
 			}
 			default: {
-				error(1, 0, ";%d Bad Syntax", currentNode->child->line);
+				error(1, 0, ":%d Bad Syntax", currentNode->child->line);
+				//goto end_Ccase
 				break;
 			}
 		}
 
-		end_case: error(1, 0, ";%d Bad Syntax", currentNode->child->line);
+		end_case: error(1, 0, ":%d Bad Syntax", currentNode->child->line);
 		
 		currentNode = currentNode->next; // Go To last Node
 	}
@@ -393,8 +394,8 @@ struct linked_list* create_token_list(char* buffer)
 		case '\n':
 			if (current == next)
 			{
-				temp->tok_type = -1;
-				temp->type = -1;
+				temp->tok_type = 1000;
+				temp->type = 1000;
 			}
 			else {
 				temp->tok_type = NEWLINE;
@@ -549,15 +550,11 @@ command_stream_t
 make_command_stream(int(*get_next_byte) (void *),
 	void *get_next_byte_argument)
 {
+	fprintf(stdout, "make command stream begin");
 	char *buffer;
 	buffer = create_buffer(get_next_byte, get_next_byte_argument);
-	struct linked_list *op_stack = create_token_list(buffer);
-	//free(buffer);
-	grammarCheck(op_stack);
-	/*
-	int done = 0;
-	char* word = (char *) checked_malloc(sizeof(char *));
-	char c = (char)get_next_byte(get_next_byte_argument);
+	
+	struct linked_list *tok_list = create_token_list(buffer);//need to define buffer
 	struct linked_list *op_stack = get_new_list();
 	struct linked_list *cmd_stack = get_new_list();
 	struct command_stream *cmd_stream = (struct command_stream*)malloc(sizeof(struct command_stream));
@@ -567,81 +564,78 @@ make_command_stream(int(*get_next_byte) (void *),
 	struct command* top_op;
 	struct command* cmd1;
 	struct command* cmd2;
-	while (!done) {
-	while (!feof(get_next_byte_argument)) {
-	//If c is special token(i.e. operator), push to command stack
-	if (valid_operator(c, word, type, cmd_stack, get_next_byte, get_next_byte_argument)) {
-	struct command new_op;
-	new_op.type = *type;
-	//If operator stack is empty
-	if (empty(op_stack)) {
-	//append c to operator stack
-	InsertAtHead(&new_op, op_stack);
-	}
-	else {
-	//while the precedence of the top_operater is greater than than
-	//the precedence of c, pop the operator and command stacks to
-	//evaulate both/build thier trees in the correct order
-	top_op = peek(op_stack);
-	//can compare enumerated types beacuse converted to ints in assembly
-	while ((top_op != NULL) && (new_op.type <= top_op->type)) {
-	op = RemoveAtHead(op_stack);
-	cmd2 = RemoveAtHead(cmd_stack);
-	cmd1 = RemoveAtHead(cmd_stack);
-	//for this lab combine means setting the children pointers
-	//of the operator to the two commands and pushing the
-	//operator onto the command stack
-	//          new_cmd = combine(cmd1, cmd2, op);
-	op->u.command[0] = cmd1;
-	op->u.command[1] = cmd2;
-	//here i operate on the highest precedent command first
-	//although in my notes i operate weith c instdead (idk why)
-	InsertAtHead(op, cmd_stack);
-	top_op = peek(op_stack);
-	if (top_op == NULL)
-	break;
-	}
-	//c is now the highest precedence operator and should be evaulate
-	//first so we push onto operator stack now
-	InsertAtHead(&new_op, op_stack);
-	}
-	//whever we encounter an operator i.e. tokenized character we
-	//push the previous series of nontokenized characters (i.e word)
-	//onto the command stack
-	//cmd_stack.push(word); -- NOW HANDLED BY VALID_OPERATOR FUNCTION
-	}
-	else {
-	//c is a non tokenized character so we just add it onto the existing
-	//sequence of nontokenized characters (i.e the word)
-	char* tmp;
-	tmp = (char*)malloc(sizeof(char) * strlen(c))
-	 *tmp = c;
-	strcat(word, &c);
-	if (c == '\n' && word[strlen(word) - 1] == '\n') {
-	break;
-	}
-	}
-	}
-	//file stream empty so we now just finish off operator and command stacks
-	//should end with empty op stack and commmand stack with answer in it
-	//for our purposes would be pointer to head node of command tree
-	while (!empty(op_stack)) {
-	//algorithm works the same way as before with the operators
-	op = RemoveAtHead(op_stack);
-	cmd2 = RemoveAtHead(cmd_stack);
-	cmd1 = RemoveAtHead(cmd_stack);
-	//new_cmd = combine(cmd1, cmd2, op);
-	op->u.command[0] = cmd1;
-	op->u.command[1] = cmd2;
-	InsertAtHead(op, cmd_stack);
-	}
-	struct command *final_cmd_tree = RemoveAtHead(cmd_stack);
-	InsertAtHead(final_cmd_tree, cmd_stream->forrest);
+	struct command* next_token;
+	while (!empty(tok_list)) {
+		while ((next_token = peek(op_stack)) != NULL) {
+			if (next_token->type == 1000) {
+				break;
+			}
+			//If c is special token(i.e. operator), push to command stack
+			if (next_token->type != SIMPLE_COMMAND) {
+				//If operator stack is empty
+				if (empty(op_stack)) {
+					//append c to operator stack
+					InsertAtHead(next_token, op_stack);
+				}
+				else {
+					//while the precedence of the top_operater is greater than than
+					//the precedence of c, pop the operator and command stacks to 
+					//evaulate both/build thier trees in the correct order
+					top_op = peek(op_stack);
+					//can compare enumerated types beacuse converted to ints in assembly
+					while ((top_op != NULL) && (next_token->type <= top_op->type)) {
+						op = RemoveAtHead(op_stack);
+						cmd2 = RemoveAtHead(cmd_stack);
+						cmd1 = RemoveAtHead(cmd_stack);
+						//for this lab combine means setting the children pointers
+						//of the operator to the two commands and pushing the
+						//operator onto the command stack
+						//          new_cmd = combine(cmd1, cmd2, op);
+						op->u.command[0] = cmd1;
+						op->u.command[1] = cmd2;
+						//here i operate on the highest precedent command first
+						//although in my notes i operate weith c instdead (idk why)
+						InsertAtHead(op, cmd_stack);
+						top_op = peek(op_stack);
+						if (top_op == NULL)
+							break;
+					}
+					//c is now the highest precedence operator and should be evaulate
+					//first so we push onto operator stack now
+					InsertAtHead(next_token, op_stack);
+				}
+				//whever we encounter an operator i.e. tokenized character we
+				//push the previous series of nontokenized characters (i.e word)
+				//onto the command stack
+				//cmd_stack.push(word); -- NOW HANDLED BY VALID_OPERATOR FUNCTION
+			}
+			else {
+				//c is a non tokenized character so we just add it onto the existing
+				//sequence of nontokenized characters (i.e the word)
+				InsertAtHead(next_token, cmd_stack);
+			}
+		}
+		//file stream empty so we now just finish off operator and command stacks
+		//should end with empty op stack and commmand stack with answer in it
+		//for our purposes would be pointer to head node of command tree
+		while (!empty(op_stack)) {
+			//algorithm works the same way as before with the operators
+			op = RemoveAtHead(op_stack);
+			cmd2 = RemoveAtHead(cmd_stack);
+			cmd1 = RemoveAtHead(cmd_stack);
+			//new_cmd = combine(cmd1, cmd2, op);
+			op->u.command[0] = cmd1;
+			op->u.command[1] = cmd2;
+			InsertAtHead(op, cmd_stack);
+		}
+		struct command *complete_cmd_tree;
+		if ((complete_cmd_tree = RemoveAtHead(cmd_stack)) == NULL) {
+			continue;
+		}
+		InsertAtHead(complete_cmd_tree, cmd_stream->forrest);
 	}
 
-	*/
-	error(1, 0, "command reading not yet implemented");
-	return 0; //(command_stream_t)cmd_stream;
+	return (command_stream_t)cmd_stream;
 }
 
 command_t

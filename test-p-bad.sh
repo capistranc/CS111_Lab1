@@ -8,9 +8,12 @@ mkdir "$tmp" || exit
 cd "$tmp" || exit
 status=
 
+echo "Sanity Check started"
+
 # Sanity check, to make sure it works with at least one good example.
 echo x >test0.sh || exit
-../timetrash -p test0.sh >test0.out 2>test0.err || exit
+
+#../timetrash -p test0.sh >test0.out 2>test0.err || exit
 echo '# 1
   x' >test0.exp || exit
 diff -u test0.exp test0.out || exit
@@ -18,6 +21,8 @@ test ! -s test0.err || {
   cat test0.err
   exit 1
 }
+
+echo "Sanity Check completed"
 
 n=1
 for bad in \
@@ -46,6 +51,7 @@ for bad in \
   '( (a)' \
   'a>>>b'
 do
+  echo "Test Case 1..."
   echo "$bad" >test$n.sh || exit
   ../timetrash -p test$n.sh >test$n.out 2>test$n.err && {
     echo >&2 "test$n: unexpectedly succeeded for: $bad"
@@ -56,6 +62,7 @@ do
     status=1
   }
   n=$((n+1))
+  echo "completed"
 done
 
 exit $status
