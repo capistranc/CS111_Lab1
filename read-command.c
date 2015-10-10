@@ -550,11 +550,14 @@ command_stream_t
 make_command_stream(int(*get_next_byte) (void *),
 	void *get_next_byte_argument)
 {
-	fprintf(stdout, "make command stream begin");
+	fprintf(stderr, "make command stream begin");
 	char *buffer;
 	buffer = create_buffer(get_next_byte, get_next_byte_argument);
 	
-	struct linked_list *tok_list = create_token_list(buffer);//need to define buffer
+	
+	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
+	grammarCheck(tok_list);
+	/*
 	struct linked_list *op_stack = get_new_list();
 	struct linked_list *cmd_stack = get_new_list();
 	struct command_stream *cmd_stream = (struct command_stream*)malloc(sizeof(struct command_stream));
@@ -634,19 +637,21 @@ make_command_stream(int(*get_next_byte) (void *),
 		}
 		InsertAtHead(complete_cmd_tree, cmd_stream->forrest);
 	}
-
-	return (command_stream_t)cmd_stream;
+	*/
+	return 0;
+	//return (command_stream_t)cmd_stream;
 }
 
 command_t
 read_command_stream(command_stream_t s)
 {
 	/* FIXME: Replace this with your implementation too.  */
-	//error (1, 0, "command reading not yet implemented");
-	//return 0;
+	error (1, 0, "command reading not yet implemented");
+	return 0;
+	/*
 	command_t cmd;
 	if ((cmd = RemoveAtHead(s->forrest)) == NULL) {
 		return 0;
 	}
-	return cmd;
+	return cmd; */
 }
