@@ -14,12 +14,6 @@
 
 ////////////////Structure Definitions
 /////////////////////////////////////////////
-struct token
-{
-	token_type type;
-	char* word;
-	int line;
-};
 
 struct linked_list
 {
@@ -35,7 +29,6 @@ struct linked_list
 
 struct Node
 {
-	struct token *t;
 	struct command *child;
 	struct Node *next;
 	struct Node *prev;
@@ -54,7 +47,8 @@ struct command_stream
 /////////////////////////////////////////////
 
 
-struct linked_list* get_new_list() {
+struct linked_list* get_new_list() 
+{
 	struct linked_list* new_list = (struct linked_list*)malloc(sizeof(struct linked_list));
 	new_list->head = NULL;
 	return new_list;
@@ -345,19 +339,19 @@ void grammarCheck(struct linked_list *list)
 				break;
 			}
 			default: {
-				error(1, 0, ":%d Bad Syntax", currentNode->child->line);
+				end_case:
+				error(1, 0, ":%d Bad Syntax, Node pos:, %d", currentNode->child->line, currentNode->child->pos);
+		
 				//goto end_Ccase
 				break;
 			}
 		}
-
-		end_case: error(1, 0, ":%d Bad Syntax", currentNode->child->line);
 		
 		currentNode = currentNode->next; // Go To last Node
 	}
 
 	if (scope != 0) {
-			error(1, 0, ";%d Bad Syntax", scope_line);
+			error(1, 0, ":%d Bad Syntax", scope_line);
 	}
 }
 
@@ -368,6 +362,7 @@ struct linked_list* create_token_list(char* buffer)
 	struct linked_list *tok_list = get_new_list(); //
 	int iter = 0;
 	int line_num = 1;
+	int node_pos = 0;
 
 	char current;
 	char next;
@@ -499,7 +494,7 @@ struct linked_list* create_token_list(char* buffer)
 		temp->line = line_num;
 		//fprintf(stderr, "test temp->line = %d\n", temp->line);
 
-
+		temp->pos = node_pos++;
 		InsertAtTail(temp, tok_list);
 
 		//free(temp)  WE STILL USE THIS MEMRORNYTY
@@ -517,6 +512,7 @@ char* create_buffer(int(*get_next_byte) (void *), void *get_next_byte_argument)
 	size_t buffer_size = 1024;
 	char *buffer = (char *)checked_malloc(buffer_size);
 	char current_byte;
+	
 
 	//Iterates through entire file
 	while ((current_byte = get_next_byte(get_next_byte_argument)) != EOF)
@@ -556,8 +552,11 @@ make_command_stream(int(*get_next_byte) (void *),
 	
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
-	grammarCheck(tok_list);
-	/*
+	
+	//grammarCheck(tok_list);
+	
+	
+	
 	struct linked_list *op_stack = get_new_list();
 	struct linked_list *cmd_stack = get_new_list();
 	struct command_stream *cmd_stream = (struct command_stream*)malloc(sizeof(struct command_stream));
@@ -569,7 +568,7 @@ make_command_stream(int(*get_next_byte) (void *),
 	struct command* cmd2;
 	struct command* next_token;
 	while (!empty(tok_list)) {
-		while ((next_token = peek(op_stack)) != NULL) {
+		while ((next_token = RemoveAtHead(tok_list)) != NULL) {
 			if (next_token->type == 1000) {
 				break;
 			}
@@ -637,7 +636,8 @@ make_command_stream(int(*get_next_byte) (void *),
 		}
 		InsertAtHead(complete_cmd_tree, cmd_stream->forrest);
 	}
-	*/
+	
+	error (1, 0, "command reading not yet implemented");
 	return 0;
 	//return (command_stream_t)cmd_stream;
 }

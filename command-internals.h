@@ -30,6 +30,7 @@ struct command
   enum command_type type;
   token_type tok_type;
   int line;
+  int pos;
 
   
   // Exit status, or -1 if not known (e.g., because it has not exited yet).
