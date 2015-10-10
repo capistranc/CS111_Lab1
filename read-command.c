@@ -257,12 +257,22 @@ void grammarCheck(struct linked_list *list)
 		enum command_type this_type;
 		enum command_type next_type;
 		enum command_type prev_type;
-
+		
+		
 		this_tok_type = currentNode->child->tok_type;
 		this_type = currentNode->child->type;
-		next_tok_type = currentNode->next->child->tok_type;
-		next_type = currentNode->next->child->type;
-		if (currentNode->prev != NULL) {
+		if(currentNode->next != NULL)
+		{
+			next_tok_type = currentNode->next->child->tok_type;
+			next_type = currentNode->next->child->type;
+		}
+		else
+		{
+			next_tok_type = -1;
+			next_type = -1;
+		}
+		if (currentNode->prev != NULL) 
+		{
 			prev_tok_type = currentNode->prev->child->tok_type;
 			prev_type = currentNode->prev->child->type;
 		}
@@ -556,7 +566,7 @@ make_command_stream(int(*get_next_byte) (void *),
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
 	
-	//grammarCheck(tok_list);
+	grammarCheck(tok_list);
 	
 	
 	
