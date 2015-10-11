@@ -11,7 +11,8 @@ typedef enum token_type
 	LEFT_ARROW, //7
 	RIGHT_ARROW, //8
 	NEWLINE, //9
-	OTHER //10
+	OTHER, //10
+	ENDTREE //11
 }token_type;
 
 enum command_type

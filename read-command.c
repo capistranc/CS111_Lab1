@@ -247,18 +247,18 @@ void printTokenList(struct linked_list *list)
 
   struct Node* currentNode = list->head;
 
-  fprintf(stderr, "Node Pos, Command Type, Word Contained\n");
+  fprintf(stderr, "Node Pos,\tCommand Type\tWord Contained\n");
   while (currentNode != NULL)
   {
 	  token_type temp_type = currentNode->child->tok_type;
 	  int loc = currentNode->child->pos;
 	  
 	  if (temp_type == WORD){
-		  fprintf(stderr, "%d,\t%d,\t%s\n",loc, temp_type,*(currentNode->child->u.word));
+		  fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, temp_type,*(currentNode->child->u.word));
 	  }
 	  else
 	  {
-		  fprintf(stderr, "%d,\t%d,\t\n",loc, temp_type);
+		  fprintf(stderr, "%d,\t\t%d,\t\n",loc, temp_type);
 	  }
 	  currentNode = currentNode->next;
   }
@@ -266,7 +266,7 @@ void printTokenList(struct linked_list *list)
 void grammarCheck(struct linked_list *list)
 {
 	fprintf(stderr, "This is the start of grammarCheck():\n");
-	fprintf(stderr, "Node Pos, Token Type, Word\n");
+	fprintf(stderr, "Node Pos,\tToken Type,\tWord\n");
 	struct Node* currentNode = list->head;
 
 	int scope = 0;
@@ -274,6 +274,7 @@ void grammarCheck(struct linked_list *list)
 
 	while (currentNode != NULL)
 	{
+		
 		token_type this_tok_type;
 		token_type next_tok_type;
 		token_type prev_tok_type;
@@ -284,16 +285,19 @@ void grammarCheck(struct linked_list *list)
 		
 		
 		this_tok_type = currentNode->child->tok_type;
-		
+		if (this_tok_type == ENDTREE) {
+			currentNode = currentNode->next;
+			continue;
+		}
 		int loc = currentNode->child->pos;
 	  //This simply prints the function
 		if (this_tok_type == WORD)
 		{
-			fprintf(stderr, "%d,\t%d,\t%s\n",loc, this_tok_type,*(currentNode->child->u.word));
+			fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, this_tok_type,*(currentNode->child->u.word));
 		}
 		else
 		{
-			fprintf(stderr, "%d,\t%d,\t\n",loc, this_tok_type);
+			fprintf(stderr, "%d,\t\t%d,\t\n",loc, this_tok_type);
 		}
 		
 		
@@ -393,7 +397,7 @@ void grammarCheck(struct linked_list *list)
 			default: 
 			{
 				end_case:
-				fprintf(stderr, "\n\nGrammarCheck Failed\n this_tok_type: %d\t, next_tok_type: %d\n", this_tok_type, next_tok_type);
+				fprintf(stderr, "\n\nGrammarCheck Failed: Variable values:\n this_tok_type: %d\t, next_tok_type: %d\n", this_tok_type, next_tok_type);
 				error(1, 0, "line:%d Bad Syntax, Node pos: %d", currentNode->child->line, currentNode->child->pos);
 		
 				//goto end_Ccase
@@ -450,7 +454,7 @@ struct linked_list* create_token_list(char* buffer)
 		{
 			if (current == next)
 			{
-				temp->tok_type = -1;
+				temp->tok_type = ENDTREE;
 				temp->type = -1;
 			}
 			else {
