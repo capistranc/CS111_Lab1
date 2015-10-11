@@ -241,7 +241,28 @@ struct command* combine(struct command* cmd1, struct command* cmd2, struct comma
 //////////////////////////////////////////CHRIS'S FUNCTIONS/////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
 
+//Purely for Debugging and checking the linked list functions correctly.
+void printTokenList(struct linked_list *list)
+{
 
+  struct Node* currentNode = list->head;
+
+  fprintf(stderr, "Node Pos, Command Type, Word Contained\n");
+  while (currentNode != NULL)
+  {
+	  token_type temp_type = currentNode->child->tok_type;
+	  int loc = currentNode->child->pos;
+	  
+	  if (temp_type == WORD){
+		  fprintf(stderr, "%d,\t%d,\t%s\n",loc, temp_type,*(currentNode->child->u.word));
+	  }
+	  else
+	  {
+		  fprintf(stderr, "%d,\t%d,\t\n",loc, temp_type);
+	  }
+	  currentNode = currentNode->next;
+  }
+}
 void grammarCheck(struct linked_list *list)
 {
 	struct Node* currentNode = list->head;
@@ -354,7 +375,8 @@ void grammarCheck(struct linked_list *list)
 				}
 				break;
 			}
-			default: {
+			default: 
+			{
 				end_case:
 				fprintf(stderr, "\nThis is the tok_type: %d\n", this_tok_type);
 				fprintf(stderr, "\nThis is the next_tok_type: %d\n", next_tok_type);
@@ -437,7 +459,7 @@ struct linked_list* create_token_list(char* buffer)
 			{
 				temp->tok_type = PIPE;
 				temp->type = PIPE_COMMAND;
-				fprintf(stderr, "Doese this PIPE ever get hit at %d\n", iter);
+				//fprintf(stderr, "Doese this PIPE ever get hit at %d\n", iter);
 			}
 			break;
 		}
@@ -585,8 +607,8 @@ make_command_stream(int(*get_next_byte) (void *),
 	
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
-	
-	grammarCheck(tok_list);
+	printTokenList(tok_list);
+	//grammarCheck(tok_list);
 	
 	
 	
