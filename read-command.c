@@ -309,8 +309,7 @@ void grammarCheck(struct linked_list *list)
 		}
 		else
 		{
-			next_tok_type = -1;
-			next_type = -1;
+			next_tok_type = ENDTREE;
 		}
 		if (currentNode->prev != NULL) 
 		{
@@ -384,12 +383,12 @@ void grammarCheck(struct linked_list *list)
 			case NEWLINE: 
 			{
 				//if previous command is operator, remove this node from list
-				if (prev_type != SIMPLE_COMMAND && prev_type != SUBSHELL_COMMAND) {
+				if (prev_type != SIMPLE_COMMAND && prev_type != SUBSHELL_COMMAND && next_tok_type != ENDTREE) {
 					currentNode->prev->next = currentNode->next;
 					currentNode->next->prev = currentNode->prev;
 				}
 				//if next command is operator throw error
-				if (next_type != SIMPLE_COMMAND && next_type != SUBSHELL_COMMAND) {
+				if (next_type != SIMPLE_COMMAND && next_type != SUBSHELL_COMMAND && next_tok_type != ENDTREE) {
 					goto end_case;
 				}
 				break;
@@ -454,8 +453,10 @@ struct linked_list* create_token_list(char* buffer)
 		{
 			if (current == next)
 			{
+				iter++;
+				line_num++;
 				temp->tok_type = ENDTREE;
-				temp->type = -1;
+				temp->type = SEQUENCE_COMMAND;
 			}
 			else {
 				temp->tok_type = NEWLINE;
@@ -710,7 +711,7 @@ make_command_stream(int(*get_next_byte) (void *),
 		InsertAtHead(complete_cmd_tree, cmd_stream->forrest);
 	}
        
-	error (1, 0, "command reading not yet implemented");
+	//error (1, 0, "command reading not yet implemented");
 	//return 0;
 	return (command_stream_t)cmd_stream;
 }
