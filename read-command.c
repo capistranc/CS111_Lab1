@@ -263,6 +263,7 @@ void printTokenList(struct linked_list *list)
 	  currentNode = currentNode->next;
   }
 }
+
 void grammarCheck(struct linked_list *list)
 {
   /*
@@ -293,30 +294,29 @@ void grammarCheck(struct linked_list *list)
 	  }
 	  int loc = currentNode->child->pos;
 	  //This simply prints the token contents - useful for debugging
-	  /*
+	  
 	  if (this_tok_type == WORD) {
 	    fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, this_tok_type,*(currentNode->child->u.word));
 	  }
 	  else {
 	    fprintf(stderr, "%d,\t\t%d,\t\n",loc, this_tok_type);
 	    }
-	  */
+	  
 	  if(currentNode->next != NULL) {
 	    next_tok_type = currentNode->next->child->tok_type;
 	    next_type = currentNode->next->child->type;
 	  }
 	  else {
 	    //I don't like this method of handling null token types
-	    next_tok_type = ENDTREE;
+	    next_tok_type = OTHER;
 	  }
 	  if (currentNode->prev != NULL) {
 	    prev_tok_type = currentNode->prev->child->tok_type;
 	    prev_type = currentNode->prev->child->type;
 	  }
 	  else {
-	    //don't like this method either
-	    prev_tok_type = -1;
-	    prev_type = -1;
+	    prev_tok_type = OTHER;
+	    prev_type = OTHER;
 	  }
 		
 	  switch (this_tok_type)
@@ -335,12 +335,9 @@ void grammarCheck(struct linked_list *list)
 	    case OR: 
 	      {
 		//If two or more newlines (ENDTREE) follows an operator, this is valid
-		if (next_tok_type == ENDTREE) {
-		  //this is code for removing the next token, but I think it fits better in the ENDTREE case
-		  /*currentNode->next->next = currentNode;
-		    struct command *tmp = currentNode->next;
-		    currentNode->next = currentNode->next->next;
-		    free(tmp);*/
+		if ( (this_tok_type == NEWLINE || this_tok_type == SEMICOLON) && next_tok_type == OTHER) {
+		  //If next_tok_type == OTHER, than the next node is NULL, so we hit the end of the list.
+			break;
 		} 
 		else {  
 		  //the only thing that can follow operaters are simple commands and the beginnins of subsehsl
@@ -402,7 +399,7 @@ void grammarCheck(struct linked_list *list)
 		currentNode->next->prev = currentNode->prev;
 	      }
 	      //if next command is operator throw error
-	      if (next_type != SIMPLE_COMMAND && next_type != SUBSHELL_COMMAND && next_tok_type != ENDTREE) {
+	      if (next_type != SIMPLE_COMMAND && next_type != SUBSHELL_COMMAND && next_tok_type != OTHER) {
 		goto end_case;
 	      }
 	      //this endtree token is valid, so we now check for unbalanced scope
@@ -672,7 +669,8 @@ make_command_stream(int(*get_next_byte) (void *),
 	struct command* cmd1;
 	struct command* cmd2;
 	struct command* next_token;
-	while (!empty(tok_list)) {
+	while (!empty(tok_list)) 
+	{
 		while ((next_token = RemoveAtHead(tok_list)) != NULL) {
 			if (next_token->tok_type == ENDTREE) {
 			  fprintf(stderr, "New tree\n");
