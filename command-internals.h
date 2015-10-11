@@ -1,17 +1,17 @@
 // UCLA CS 111 Lab 1 command internals
 typedef enum token_type
 {
-	WORD,
-	SEMICOLON,
-	PIPE,
-	AND,
-	OR,
-	LEFT_PAREN,
-	RIGHT_PAREN,
-	LEFT_ARROW,
-	RIGHT_ARROW,
-	NEWLINE,
-	OTHER
+	WORD, //0
+	SEMICOLON, //1
+	PIPE, //2
+	AND, //3
+	OR, //4
+	LEFT_PAREN, //5
+	RIGHT_PAREN, //6
+	LEFT_ARROW, //7
+	RIGHT_ARROW, //8
+	NEWLINE, //9
+	OTHER //10
 }token_type;
 
 enum command_type

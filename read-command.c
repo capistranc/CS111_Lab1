@@ -254,6 +254,7 @@ void grammarCheck(struct linked_list *list)
 		token_type this_tok_type;
 		token_type next_tok_type;
 		token_type prev_tok_type;
+		fprintf(stderr, " %d ", this_tok_type);
 		enum command_type this_type;
 		enum command_type next_type;
 		enum command_type prev_type;
@@ -289,7 +290,8 @@ void grammarCheck(struct linked_list *list)
 			case SEMICOLON:
 			case PIPE:
 			case AND:
-			case OR: {
+			case OR: 
+			{
 				if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) {
 					goto end_case;
 				}
@@ -339,7 +341,8 @@ void grammarCheck(struct linked_list *list)
 				}
 				break;
 			}
-			case NEWLINE: {
+			case NEWLINE: 
+			{
 				//if previous command is operator, remove this node from list
 				if (prev_type != SIMPLE_COMMAND && prev_type != SUBSHELL_COMMAND) {
 					currentNode->prev->next = currentNode->next;
@@ -353,7 +356,9 @@ void grammarCheck(struct linked_list *list)
 			}
 			default: {
 				end_case:
-				error(1, 0, ":%d Bad Syntax, Node pos:, %d", currentNode->child->line, currentNode->child->pos);
+				fprintf(stderr, "\nThis is the tok_type: %d\n", this_tok_type);
+				fprintf(stderr, "\nThis is the next_tok_type: %d\n", next_tok_type);
+				error(1, 0, ":%d Bad Syntax, Node pos: %d", currentNode->child->line, currentNode->child->pos);
 		
 				//goto end_Ccase
 				break;
@@ -364,8 +369,10 @@ void grammarCheck(struct linked_list *list)
 	}
 
 	if (scope != 0) {
-			error(1, 0, ":%d Bad Syntax", scope_line);
+			error(1, 0, ":%d Bad Syntax caused by scope", scope_line);
 	}
+	
+	fprintf(stderr, "\n A successful grammarCheck has run.\n");
 }
 
 
@@ -390,20 +397,25 @@ struct linked_list* create_token_list(char* buffer)
 		{
 			//Skip blank spaces and new lines
 		case '\t':
-		case ' ':
+		case ' ': 
+		{
 			iter++;
 			continue;
-
-		case ';':
+		}
+		
+		case ';': 
+		{
 			temp->tok_type = SEMICOLON;
 			temp->type = SEQUENCE_COMMAND;
 			break;
-
+		}
+		
 		case '\n':
+		{
 			if (current == next)
 			{
-				temp->tok_type = 1000;
-				temp->type = 1000;
+				temp->tok_type = -1;
+				temp->type = -1;
 			}
 			else {
 				temp->tok_type = NEWLINE;
@@ -411,8 +423,9 @@ struct linked_list* create_token_list(char* buffer)
 				line_num++;
 			}
 			break;
-
+		}
 		case '|':
+		{
 			if (current == next)
 			{
 				temp->tok_type = OR;
@@ -424,11 +437,12 @@ struct linked_list* create_token_list(char* buffer)
 			{
 				temp->tok_type = PIPE;
 				temp->type = PIPE_COMMAND;
-				//fprintf(stderr, "Doese this PIPE ever get hit at %d\n", iter);
+				fprintf(stderr, "Doese this PIPE ever get hit at %d\n", iter);
 			}
 			break;
-
+		}
 		case '&':
+		{
 			if (current == next)
 			{
 				temp->tok_type = AND;
@@ -443,30 +457,36 @@ struct linked_list* create_token_list(char* buffer)
 				//fprintf(stderr, "Does this OTHER statement get hit at %d\n", iter);
 			}
 			break;
-
+		}
 		case '(':
+		{
 			temp->tok_type = RIGHT_PAREN;
 			temp->type = SUBSHELL_COMMAND;
 			break;
-
+		}
 		case ')':
+		{
 			temp->tok_type = LEFT_PAREN;
 			temp->type = SUBSHELL_COMMAND;
 			break;
-
+		}
 		case '<':
+		{
 			temp->tok_type = LEFT_ARROW;
 			temp->type = SIMPLE_COMMAND;
 			break;
-
+		}
 		case '>':
+		{
 			temp->tok_type = RIGHT_ARROW;
 			temp->type = SIMPLE_COMMAND;
 			break;
-
+		}
 		default:
+		{
 			temp->tok_type = OTHER;
 			break;
+		}
 		}
 
 		int len = 1;
@@ -559,7 +579,7 @@ command_stream_t
 make_command_stream(int(*get_next_byte) (void *),
 	void *get_next_byte_argument)
 {
-	fprintf(stderr, "make command stream begin");
+	//fprintf(stderr, "make command stream begin\n");
 	char *buffer;
 	buffer = create_buffer(get_next_byte, get_next_byte_argument);
 	
@@ -651,8 +671,8 @@ make_command_stream(int(*get_next_byte) (void *),
 	}
        
 	error (1, 0, "command reading not yet implemented");
-	return 0;
-	//return (command_stream_t)cmd_stream;
+	//return 0;
+	return (command_stream_t)cmd_stream;
 }
 
 command_t
