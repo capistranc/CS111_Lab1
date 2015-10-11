@@ -265,8 +265,10 @@ void printTokenList(struct linked_list *list)
 }
 void grammarCheck(struct linked_list *list)
 {
+  /*
 	fprintf(stderr, "This is the start of grammarCheck():\n");
 	fprintf(stderr, "Node Pos,\tToken Type,\tWord\n");
+  */
 	struct Node* currentNode = list->head;
 
 	int scope = 0;
@@ -290,14 +292,15 @@ void grammarCheck(struct linked_list *list)
 	    continue;
 	  }
 	  int loc = currentNode->child->pos;
-	  //This simply prints the function
+	  //This simply prints the token contents - useful for debugging
+	  /*
 	  if (this_tok_type == WORD) {
 	    fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, this_tok_type,*(currentNode->child->u.word));
 	  }
 	  else {
 	    fprintf(stderr, "%d,\t\t%d,\t\n",loc, this_tok_type);
-	  }
-	  
+	    }
+	  */
 	  if(currentNode->next != NULL) {
 	    next_tok_type = currentNode->next->child->tok_type;
 	    next_type = currentNode->next->child->type;
@@ -654,10 +657,10 @@ make_command_stream(int(*get_next_byte) (void *),
 	
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
-	printTokenList(tok_list);
+	//printTokenList(tok_list);  //useful for debuffing
 	grammarCheck(tok_list);
 	
-	
+	fprintf(stderr, "command stream construction begin\n");
 	
 	struct linked_list *op_stack = get_new_list();
 	struct linked_list *cmd_stack = get_new_list();
@@ -672,7 +675,8 @@ make_command_stream(int(*get_next_byte) (void *),
 	while (!empty(tok_list)) {
 		while ((next_token = RemoveAtHead(tok_list)) != NULL) {
 			if (next_token->tok_type == ENDTREE) {
-				break;
+			  fprintf(stderr, "New tree\n");
+			  break;
 			}
 			//If c is an operator or subshell command, push to command stack
 			if (next_token->type != SIMPLE_COMMAND) {
@@ -694,11 +698,12 @@ make_command_stream(int(*get_next_byte) (void *),
 						//for this lab combine means setting the children pointers
 						//of the operator to the two commands and pushing the
 						//operator onto the command stack
-						//          new_cmd = combine(cmd1, cmd2, op);
+						//fprintf(stderr, 'Combining commands and operator\n');
 						op->u.command[0] = cmd1;
 						op->u.command[1] = cmd2;
 						//here i operate on the highest precedent command first
 						//although in my notes i operate weith c instdead (idk why)
+						//fprintf(stderr, 'Pushing new operator onto command stack\n');
 						InsertAtHead(op, cmd_stack);
 						top_op = peek(op_stack);
 						if (top_op == NULL)
@@ -706,12 +711,14 @@ make_command_stream(int(*get_next_byte) (void *),
 					}
 					//c is now the highest precedence operator and should be evaulate
 					//first so we push onto operator stack now
+					fprintf(stderr, "Pushing next_token onto operator stack\n");
 					InsertAtHead(next_token, op_stack);
 				}
 			}
 			else {
-				//next_token is a simple command so we just add it to the command stack
-				InsertAtHead(next_token, cmd_stack);
+			  //next_token is a simple command so we just add it to the command stack
+			  fprintf(stderr, "Pushing next token onto command stack\n");
+			  InsertAtHead(next_token, cmd_stack);
 			}
 		}
 		//we finished reading in one complete command so we now just finish off operator and command stacks
@@ -737,6 +744,7 @@ make_command_stream(int(*get_next_byte) (void *),
        
 	//error (1, 0, "command reading not yet implemented");
 	//return 0;
+	fprintf(stderr, "command tree complete\n");
 	return (command_stream_t)cmd_stream;
 }
 
@@ -744,12 +752,12 @@ command_t
 read_command_stream(command_stream_t s)
 {
 	/* FIXME: Replace this with your implementation too.  */
-	error (1, 0, "command reading not yet implemented");
-	return 0;
+	//error (1, 0, "command reading not yet implemented");
+	//return 0;
   
-	/*command_t cmd;
+	command_t cmd;
 	if ((cmd = RemoveAtHead(s->forrest)) == NULL) {
 		return 0;
 	}
-	return cmd;*/
+	return cmd;
 }
