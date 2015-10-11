@@ -331,10 +331,10 @@ void grammarCheck(struct linked_list *list)
 			case AND:
 			case OR: 
 			{
-				if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) {
+				if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN && next_tok_type != NEWLINE) {
 					goto end_case;
 				}
-				if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
+				if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN && next_tok_type != NEWLINE) {
 					goto end_case;
 				}
 				break;
@@ -449,6 +449,48 @@ struct linked_list* create_token_list(char* buffer)
 			break;
 		}
 		
+		case '|':
+		{
+			if (current == next)
+			{
+				temp->tok_type = OR;
+				temp->type = OR_COMMAND;
+				iter++;
+				while (buffer[iter+1] == '\n')
+					iter++;
+				//fprintf(stderr, "WE are in OReo CITY %d\n", iter);
+			}
+			else
+			{
+				temp->tok_type = PIPE;
+				temp->type = PIPE_COMMAND;
+				while (buffer[iter+1] == '\n')
+					iter++;
+				//fprintf(stderr, "Doese this PIPE ever get hit at %d\n", iter);
+			}
+			break;
+		}
+		
+		case '&':
+		{
+			if (current == next)
+			{
+				temp->tok_type = AND;
+				temp->type = AND_COMMAND;
+				iter++;
+				while (buffer[iter+1] == '\n')
+					iter++;
+				//fprintf(stderr, "Does this statement ever get hit at %d\n", iter);
+				break;
+			}
+			else
+			{
+				temp->tok_type = OTHER;
+				//fprintf(stderr, "Does this OTHER statement get hit at %d\n", iter);
+			}
+			break;
+		}
+		
 		case '\n':
 		{
 			if (current == next)
@@ -462,40 +504,6 @@ struct linked_list* create_token_list(char* buffer)
 				temp->tok_type = NEWLINE;
 				temp->type = SEQUENCE_COMMAND;
 				line_num++;
-			}
-			break;
-		}
-		case '|':
-		{
-			if (current == next)
-			{
-				temp->tok_type = OR;
-				temp->type = OR_COMMAND;
-				iter++;
-				//fprintf(stderr, "WE are in OReo CITY %d\n", iter);
-			}
-			else
-			{
-				temp->tok_type = PIPE;
-				temp->type = PIPE_COMMAND;
-				//fprintf(stderr, "Doese this PIPE ever get hit at %d\n", iter);
-			}
-			break;
-		}
-		case '&':
-		{
-			if (current == next)
-			{
-				temp->tok_type = AND;
-				temp->type = AND_COMMAND;
-				iter++;
-				//fprintf(stderr, "Does this statement ever get hit at %d\n", iter);
-				break;
-			}
-			else
-			{
-				temp->tok_type = OTHER;
-				//fprintf(stderr, "Does this OTHER statement get hit at %d\n", iter);
 			}
 			break;
 		}
