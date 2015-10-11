@@ -497,6 +497,11 @@ struct linked_list* create_token_list(char* buffer)
 			{
 				iter++;
 				line_num++;
+				while (buffer[iter+1] == '\n')
+				{
+					line_num++;
+					iter++;
+				}
 				temp->tok_type = ENDTREE;
 				temp->type = SEQUENCE_COMMAND;
 			}
