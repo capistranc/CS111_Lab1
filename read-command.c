@@ -265,6 +265,8 @@ void printTokenList(struct linked_list *list)
 }
 void grammarCheck(struct linked_list *list)
 {
+	fprintf(stderr, "This is the start of grammarCheck():\n");
+	fprintf(stderr, "Node Pos, Token Type, Word\n");
 	struct Node* currentNode = list->head;
 
 	int scope = 0;
@@ -275,13 +277,26 @@ void grammarCheck(struct linked_list *list)
 		token_type this_tok_type;
 		token_type next_tok_type;
 		token_type prev_tok_type;
-		fprintf(stderr, " %d ", this_tok_type);
+		
 		enum command_type this_type;
 		enum command_type next_type;
 		enum command_type prev_type;
 		
 		
 		this_tok_type = currentNode->child->tok_type;
+		
+		int loc = currentNode->child->pos;
+	  //This simply prints the function
+		if (this_tok_type == WORD)
+		{
+			fprintf(stderr, "%d,\t%d,\t%s\n",loc, this_tok_type,*(currentNode->child->u.word));
+		}
+		else
+		{
+			fprintf(stderr, "%d,\t%d,\t\n",loc, this_tok_type);
+		}
+		
+		
 		this_type = currentNode->child->type;
 		if(currentNode->next != NULL)
 		{
@@ -378,9 +393,8 @@ void grammarCheck(struct linked_list *list)
 			default: 
 			{
 				end_case:
-				fprintf(stderr, "\nThis is the tok_type: %d\n", this_tok_type);
-				fprintf(stderr, "\nThis is the next_tok_type: %d\n", next_tok_type);
-				error(1, 0, ":%d Bad Syntax, Node pos: %d", currentNode->child->line, currentNode->child->pos);
+				fprintf(stderr, "\n\nGrammarCheck Failed\n this_tok_type: %d\t, next_tok_type: %d\n", this_tok_type, next_tok_type);
+				error(1, 0, "line:%d Bad Syntax, Node pos: %d", currentNode->child->line, currentNode->child->pos);
 		
 				//goto end_Ccase
 				break;
@@ -394,7 +408,7 @@ void grammarCheck(struct linked_list *list)
 			error(1, 0, ":%d Bad Syntax caused by scope", scope_line);
 	}
 	
-	fprintf(stderr, "\n A successful grammarCheck has run.\n");
+	fprintf(stderr, "\nA successful grammarCheck has run.\n");
 }
 
 
@@ -608,7 +622,7 @@ make_command_stream(int(*get_next_byte) (void *),
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
 	printTokenList(tok_list);
-	//grammarCheck(tok_list);
+	grammarCheck(tok_list);
 	
 	
 	
