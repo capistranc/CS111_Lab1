@@ -274,141 +274,156 @@ void grammarCheck(struct linked_list *list)
 
 	while (currentNode != NULL)
 	{
+	  token_type this_tok_type;
+	  token_type next_tok_type;
+	  token_type prev_tok_type;
 		
-		token_type this_tok_type;
-		token_type next_tok_type;
-		token_type prev_tok_type;
-		
-		enum command_type this_type;
-		enum command_type next_type;
-		enum command_type prev_type;
+	  enum command_type this_type;
+	  enum command_type next_type;
+	  enum command_type prev_type;
 		
 		
-		this_tok_type = currentNode->child->tok_type;
-		if (this_tok_type == ENDTREE) {
-			currentNode = currentNode->next;
-			continue;
-		}
-		int loc = currentNode->child->pos;
+	  this_tok_type = currentNode->child->tok_type;
+	  this_type = currentNode->child->type;
+	  if (this_tok_type == ENDTREE) {
+	    currentNode = currentNode->next;
+	    continue;
+	  }
+	  int loc = currentNode->child->pos;
 	  //This simply prints the function
-		if (this_tok_type == WORD)
-		{
-			fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, this_tok_type,*(currentNode->child->u.word));
-		}
-		else
-		{
-			fprintf(stderr, "%d,\t\t%d,\t\n",loc, this_tok_type);
-		}
+	  if (this_tok_type == WORD) {
+	    fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, this_tok_type,*(currentNode->child->u.word));
+	  }
+	  else {
+	    fprintf(stderr, "%d,\t\t%d,\t\n",loc, this_tok_type);
+	  }
+	  
+	  if(currentNode->next != NULL) {
+	    next_tok_type = currentNode->next->child->tok_type;
+	    next_type = currentNode->next->child->type;
+	  }
+	  else {
+	    //I don't like this method of handling null token types
+	    next_tok_type = ENDTREE;
+	  }
+	  if (currentNode->prev != NULL) {
+	    prev_tok_type = currentNode->prev->child->tok_type;
+	    prev_type = currentNode->prev->child->type;
+	  }
+	  else {
+	    //don't like this method either
+	    prev_tok_type = -1;
+	    prev_type = -1;
+	  }
 		
-		
-		this_type = currentNode->child->type;
-		if(currentNode->next != NULL)
-		{
-			next_tok_type = currentNode->next->child->tok_type;
-			next_type = currentNode->next->child->type;
+	  switch (this_tok_type)
+	    {
+	    case WORD:
+	      {
+		//words are always fine
+		break;
+	      }
+	      //here i treat newlines and semicolons the same
+	      
+	    case NEWLINE:
+	    case SEMICOLON:
+	    case PIPE:
+	    case AND:
+	    case OR: 
+	      {
+		//If two or more newlines (ENDTREE) follows an operator, this is valid
+		if (next_tok_type == ENDTREE) {
+		  //this is code for removing the next token, but I think it fits better in the ENDTREE case
+		  /*currentNode->next->next = currentNode;
+		    struct command *tmp = currentNode->next;
+		    currentNode->next = currentNode->next->next;
+		    free(tmp);*/
+		} 
+		else {  
+		  //the only thing that can follow operaters are simple commands and the beginnins of subsehsl
+		  if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) {
+		    goto end_case;
+		  }
+		  //the only things that can precede operators are simple commands and the end of subshells
+		  if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
+		    goto end_case;
+		  }
 		}
-		else
-		{
-			next_tok_type = ENDTREE;
-		}
-		if (currentNode->prev != NULL) 
-		{
-			prev_tok_type = currentNode->prev->child->tok_type;
-			prev_type = currentNode->prev->child->type;
+		break;
+	      }
+	    case LEFT_PAREN: {
+	      scope++;
+	      if (scope_line == 0) {
+		scope_line = currentNode->child->line;
+	      }
+	      break;
+	    }
+	    case RIGHT_PAREN: {
+	      scope--;
+	      if (scope < 0) {
+		goto end_case;
+	      }
+	      if (scope == 0) {
+		scope_line = 0;
+	      }
+	      break;
+	    }
+	    case LEFT_ARROW:
+	    case RIGHT_ARROW: {
+	      int consecutive_arrow_count = 1;
+	      if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) {
+		if (next_tok_type == this_tok_type) {
+		  consecutive_arrow_count++;
 		}
 		else {
-			prev_tok_type = -1;
-			prev_type = -1;
+		  goto end_case;
 		}
-		
-		switch (this_tok_type)
-		{
-			case WORD:
-				//words are always fine
-				break;
-			case SEMICOLON:
-			case PIPE:
-			case AND:
-			case OR: 
-			{
-				if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN && next_tok_type != NEWLINE) {
-					goto end_case;
-				}
-				if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN && next_tok_type != NEWLINE) {
-					goto end_case;
-				}
-				break;
-			}
-			case LEFT_PAREN: {
-				scope++;
-				if (scope_line == 0) {
-					scope_line = currentNode->child->line;
-				}
-				break;
-			}
-			case RIGHT_PAREN: {
-				scope--;
-				if (scope < 0) {
-					goto end_case;
-				}
-				if (scope == 0) {
-					scope_line = 0;
-				}
-				break;
-			}
-			case LEFT_ARROW:
-			case RIGHT_ARROW: {
-				int consecutive_arrow_count = 1;
-				if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) {
-					if (next_tok_type == this_tok_type) {
-						consecutive_arrow_count++;
-					}
-					else {
-						goto end_case;
-					}
-				}
-				if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
-					if (prev_tok_type == this_tok_type) {
-						consecutive_arrow_count++;
-					}
-					else {
-						goto end_case;
-					}
-				}
-				if (consecutive_arrow_count > 2) {
-					goto end_case;
-				}
-				break;
-			}
-			case NEWLINE: 
-			{
-				//if previous command is operator, remove this node from list
-				if (prev_type != SIMPLE_COMMAND && prev_type != SUBSHELL_COMMAND && next_tok_type != ENDTREE) {
-					currentNode->prev->next = currentNode->next;
-					currentNode->next->prev = currentNode->prev;
-				}
-				//if next command is operator throw error
-				if (next_type != SIMPLE_COMMAND && next_type != SUBSHELL_COMMAND && next_tok_type != ENDTREE) {
-					goto end_case;
-				}
-				break;
-			}
-			default: 
-			{
-				end_case:
-				fprintf(stderr, "\n\nGrammarCheck Failed: Variable values:\n this_tok_type: %d\t, next_tok_type: %d\n", this_tok_type, next_tok_type);
-				error(1, 0, "line:%d Bad Syntax, Node pos: %d", currentNode->child->line, currentNode->child->pos);
-		
-				//goto end_Ccase
-				break;
-			}
+	      }
+	      if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
+		if (prev_tok_type == this_tok_type) {
+		  consecutive_arrow_count++;
 		}
-		
-		currentNode = currentNode->next; // Go To last Node
+		else {
+		  goto end_case;
+		}
+	      }
+	      if (consecutive_arrow_count > 2) {
+		goto end_case;
+	      }
+	      break;
+	    }
+	    case ENDTREE: {
+	      //if previous command is operator, remove this node from list
+	      if (prev_type != SIMPLE_COMMAND && prev_type != SUBSHELL_COMMAND) {
+		currentNode->prev->next = currentNode->next;
+		currentNode->next->prev = currentNode->prev;
+	      }
+	      //if next command is operator throw error
+	      if (next_type != SIMPLE_COMMAND && next_type != SUBSHELL_COMMAND && next_tok_type != ENDTREE) {
+		goto end_case;
+	      }
+	      //this endtree token is valid, so we now check for unbalanced scope
+	      if (scope != 0) {
+		error(1, 0, ":%d Bad Syntax caused by unbalanced scope", scope_line);
+	      }
+	      break;
+	    }
+	    default: {
+	      end_case:
+	      fprintf(stderr, "\n\nGrammarCheck Failed: Variable values:\n this_tok_type: %d\t, next_tok_type: %d\n", this_tok_type, next_tok_type);
+	      error(1, 0, "line:%d Bad Syntax, Node pos: %d", currentNode->child->line, currentNode->child->pos);
+	      //goto end_Ccase
+	      break;
+	    }
+	      
+	    }
+	  
+	  currentNode = currentNode->next; // traverse to next node
 	}
 
+	//we also check for unbalanced scope after exhausting the token list
 	if (scope != 0) {
-			error(1, 0, ":%d Bad Syntax caused by scope", scope_line);
+	  error(1, 0, ":%d Bad Syntax caused by scope", scope_line);
 	}
 	
 	fprintf(stderr, "\nA successful grammarCheck has run.\n");
@@ -656,10 +671,10 @@ make_command_stream(int(*get_next_byte) (void *),
 	struct command* next_token;
 	while (!empty(tok_list)) {
 		while ((next_token = RemoveAtHead(tok_list)) != NULL) {
-			if (next_token->type == 1000) {
+			if (next_token->tok_type == ENDTREE) {
 				break;
 			}
-			//If c is special token(i.e. operator), push to command stack
+			//If c is an operator or subshell command, push to command stack
 			if (next_token->type != SIMPLE_COMMAND) {
 				//If operator stack is empty
 				if (empty(op_stack)) {
@@ -693,18 +708,13 @@ make_command_stream(int(*get_next_byte) (void *),
 					//first so we push onto operator stack now
 					InsertAtHead(next_token, op_stack);
 				}
-				//whever we encounter an operator i.e. tokenized character we
-				//push the previous series of nontokenized characters (i.e word)
-				//onto the command stack
-				//cmd_stack.push(word); -- NOW HANDLED BY VALID_OPERATOR FUNCTION
 			}
 			else {
-				//c is a non tokenized character so we just add it onto the existing
-				//sequence of nontokenized characters (i.e the word)
+				//next_token is a simple command so we just add it to the command stack
 				InsertAtHead(next_token, cmd_stack);
 			}
 		}
-		//file stream empty so we now just finish off operator and command stacks
+		//we finished reading in one complete command so we now just finish off operator and command stacks
 		//should end with empty op stack and commmand stack with answer in it
 		//for our purposes would be pointer to head node of command tree
 		while (!empty(op_stack)) {
@@ -717,6 +727,7 @@ make_command_stream(int(*get_next_byte) (void *),
 			op->u.command[1] = cmd2;
 			InsertAtHead(op, cmd_stack);
 		}
+		//the last command in the command stack now contatins the execution tree of the complete command
 		struct command *complete_cmd_tree;
 		if ((complete_cmd_tree = RemoveAtHead(cmd_stack)) == NULL) {
 			continue;
@@ -735,10 +746,10 @@ read_command_stream(command_stream_t s)
 	/* FIXME: Replace this with your implementation too.  */
 	error (1, 0, "command reading not yet implemented");
 	return 0;
-	/*
-	command_t cmd;
+  
+	/*command_t cmd;
 	if ((cmd = RemoveAtHead(s->forrest)) == NULL) {
 		return 0;
 	}
-	return cmd; */
+	return cmd;*/
 }
