@@ -772,7 +772,7 @@ make_command_stream(int(*get_next_byte) (void *),
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
 	printTokenList(tok_list);  //useful for debuffing
-	grammarCheck(tok_list);
+	//grammarCheck(tok_list);
 	io_redirect(tok_list);
 	printTokenList(tok_list);
 	
@@ -805,12 +805,35 @@ make_command_stream(int(*get_next_byte) (void *),
 			}
 			//If c is an operator or subshell command, push to command stack
 			if (next_token->type != SIMPLE_COMMAND) {
-				//If operator stack is empty
-				if (empty(op_stack)) {
-					//append c to operator stack
-					InsertAtHead(next_token, op_stack);
+			  if (next_token->type == SUBSHELL_COMMAND) {
+			    if (next_token->tok_type == LEFT_PAREN)
+			      {
+				InsertAtHead(next_token, op_stack);
+			      }
+			    else if(next_token->tok_type == RIGHT_PAREN)
+			      {
+				op = RemoveAtHead(op_stack);
+				while (op != NULL && op->tok_type != LEFT_PAREN) {
+				  //algorithm works the same way as before with the operators
+				  cmd2 = RemoveAtHead(cmd_stack);
+				  cmd1 = RemoveAtHead(cmd_stack);
+				  //new_cmd = combine(cmd1, cmd2, op);
+				  op->u.command[0] = cmd1;
+				  op->u.command[1] = cmd2;
+				  InsertAtHead(op, cmd_stack);
+				  op = RemoveAtHead(op_stack);
 				}
-				else {
+				cmd1 = RemoveAtHead(cmd_stack);
+				op->u.subshell_command = cmd1;
+				InsertAtHead(op, cmd_stack);
+			      }
+			  }
+				//If operator stack is empty
+			  else if (empty(op_stack)) {
+			    //append c to operator stack
+			    InsertAtHead(next_token, op_stack);
+			  }
+			  else {
 					//while the precedence of the top_operater is greater than than
 					//the precedence of c, pop the operator and command stacks to 
 					//evaulate both/build thier trees in the correct order
