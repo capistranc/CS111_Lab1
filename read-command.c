@@ -173,7 +173,7 @@ bool isValidChar(char c)
 {
 	return (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') ||
 		c == '!' || c == '%' || c == '+' || c == ',' || c == '-' || c == '.' || c == '/' ||
-		c == ':' || c == '@' || c == '^' || c == '_' || c == ' ');
+		c == ':' || c == '@' || c == '^' || c == '_'  ||  c == ' ');
 }
 //////////Primary Functions//////////////////
 ////////////////////////////////////////////
@@ -639,7 +639,11 @@ struct linked_list* create_token_list(char* buffer)
 			{
 				minibuf[i] = buffer[iter + i];
 			}
-			minibuf[len] = '\0';
+			
+			if (minibuf[len - 1] == ' ')
+				minibuf[len - 1] = '\0';
+			else
+				minibuf[len] = '\0';
 
 			*(temp->u.word) = minibuf;
 			iter += len - 1;
