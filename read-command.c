@@ -513,8 +513,6 @@ void grammarCheck(struct linked_list *list)
 	fprintf(stderr, "\nA successful grammarCheck has run.\n");
 }
 
-
-
 struct linked_list* create_token_list(char* buffer)
 {
 	struct linked_list *tok_list = get_new_list(); //
@@ -733,7 +731,7 @@ char* create_buffer(int(*get_next_byte) (void *), void *get_next_byte_argument)
 	}
 	buffer[iter] = '\0';
 
-	fprintf(stderr, "%s", buffer);
+	//printf(stderr, "%s", buffer);
 	return buffer;
 }
 
@@ -771,12 +769,12 @@ make_command_stream(int(*get_next_byte) (void *),
 	
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
-	printTokenList(tok_list);  //useful for debuffing
+	//printTokenList(tok_list);  //useful for debuffing
 	//grammarCheck(tok_list);
 	io_redirect(tok_list);
-	printTokenList(tok_list);
+	//printTokenList(tok_list);
 	
-	fprintf(stderr, "command stream construction begin\n");
+	//fprintf(stderr, "command stream construction begin\n");
 	
 	struct linked_list *op_stack = get_new_list();
 	struct linked_list *cmd_stack = get_new_list();
@@ -800,7 +798,7 @@ make_command_stream(int(*get_next_byte) (void *),
 	{
 		while ((next_token = RemoveAtHead(tok_list)) != NULL) {
 			if (next_token->tok_type == ENDTREE) {
-			  fprintf(stderr, "New tree\n");
+			  //fprintf(stderr, "New tree\n");
 			  break;
 			}
 			//If c is an operator or subshell command, push to command stack
@@ -900,7 +898,7 @@ make_command_stream(int(*get_next_byte) (void *),
        
 	//error (1, 0, "command reading not yet implemented");
 	//return 0;
-	fprintf(stderr, "command tree complete\n");
+	//fprintf(stderr, "command tree complete\n");
 	return (command_stream_t)cmd_stream;
 }
 

@@ -6,6 +6,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static void single_command_print(command_t c) {
+
+  fprintf(stderr, "EXAMINING:  \n");
+
+  token_type temp_type = c->tok_type;
+  enum command_type cmd_type = c->type;
+  int loc = c->pos;
+  static char const command_label[][3] = { "&&", ";", "||", "|" };
+  if (cmd_type == SIMPLE_COMMAND) {
+    fprintf(stderr, "%d,\t\t%d,\t\t%s",loc, temp_type, *(c->u.word));
+    if (c->input != NULL) {
+      fprintf(stderr, "has input");
+      fprintf (stderr, "<%s", c->input);
+    }
+    if (c->output != NULL) {
+      fprintf(stderr, "has output");
+      fprintf (stderr, ">%s", c->output);
+    }
+    fprintf(stderr, "\n");
+  }
+  else {
+    fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, temp_type, command_label[cmd_type]);
+ }
+}
+
+
+
 static void
 command_indented_print (int indent, command_t c)
 {
@@ -16,33 +43,14 @@ command_indented_print (int indent, command_t c)
     case OR_COMMAND:
     case PIPE_COMMAND:
       {
-	//fprintf(stderr, "examining children of \n");
+	//single_command_print(c);
 	
-	token_type temp_type = c->tok_type;
-	enum command_type cmd_type = c->type;
-	int loc = c->pos;
 	static char const command_label[][3] = { "&&", ";", "||", "|" };
-	if (cmd_type == SIMPLE_COMMAND) {
-	  //fprintf(stderr, "%d,\t\t%d,\t\t%s",loc, temp_type, *(c->u.word));
-	  if (c->input != NULL) {
-	    //fprintf(stderr, "has input");
-	    //fprintf (stderr, "<%s", c->input);
-	  }
-	  if (c->output != NULL) {
-	    //fprintf(stderr, "has output");
-	    //fprintf (stderr, ">%s", c->output);
-	  }
-	  //fprintf(stderr, "\n");
-	}
-	else {
-	  //fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, temp_type, command_label[cmd_type]);
-	}
 
 	command_indented_print (indent + 2 * (c->u.command[0]->type != c->type),
 				c->u.command[0]);
-	//static char const command_label[][3] = { "&&", ";", "||", "|" };
 	printf (" \\\n%*s%s\n", indent, "", command_label[c->type]);
-	fprintf (stderr, " \\\n%*s%s\n", indent, "", command_label[c->type]);
+	//fprintf (stderr, " \\\n%*s%s\n", indent, "", command_label[c->type]);
 	command_indented_print (indent + 2 * (c->u.command[1]->type != c->type),
 				c->u.command[1]);
 	break;
@@ -52,7 +60,7 @@ command_indented_print (int indent, command_t c)
       {
 	char **w = c->u.word;
 	printf ("%*s%s", indent, "", *w);
-	fprintf (stderr, "%*s%s", indent, "", *w);
+	//fprintf (stderr, "%*s%s", indent, "", *w);
 	while (*++w) {
 	  printf (" %s", *w);
 	  printf (" %s", *w);
@@ -62,10 +70,10 @@ command_indented_print (int indent, command_t c)
 
     case SUBSHELL_COMMAND:
       printf ("%*s(\n", indent, "");
-      fprintf (stderr, "%*s(\n", indent, "");
+      //fprintf (stderr, "%*s(\n", indent, "");
       command_indented_print (indent + 1, c->u.subshell_command);
       printf ("\n%*s)", indent, "");
-      fprintf (stderr, "\n%*s)", indent, "");
+      //fprintf (stderr, "\n%*s)", indent, "");
       break;
 
     default:
@@ -74,11 +82,11 @@ command_indented_print (int indent, command_t c)
 
   if (c->input) {
     printf ("<%s", c->input);
-    fprintf (stderr, "<%s", c->input);
+    //fprintf (stderr, "<%s", c->input);
   }
   if (c->output) {
     printf (">%s", c->output);
-    fprintf (stderr, ">%s", c->output);
+    //fprintf (stderr, ">%s", c->output);
   }
 }
 
@@ -88,6 +96,6 @@ print_command (command_t c)
   command_indented_print (2, c);
   
   putchar ('\n');
-  fprintf(stderr, "\n");
-  fprintf(stderr, "\n");
+  //fprintf(stderr, "\n");
+  //fprintf(stderr, "\n");
 }
