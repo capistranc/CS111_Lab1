@@ -16,9 +16,31 @@ command_indented_print (int indent, command_t c)
     case OR_COMMAND:
     case PIPE_COMMAND:
       {
+	fprintf(stderr, "examining children of \n");
+	
+	token_type temp_type = c->tok_type;
+	enum command_type cmd_type = c->type;
+	int loc = c->pos;
+	static char const command_label[][3] = { "&&", ";", "||", "|" };
+	if (cmd_type == SIMPLE_COMMAND) {
+	  fprintf(stderr, "%d,\t\t%d,\t\t%s",loc, temp_type, *(c->u.word));
+	  if (c->input != NULL) {
+	    //fprintf(stderr, "has input");
+	    fprintf (stderr, "<%s", c->input);
+	  }
+	  if (c->output != NULL) {
+	    //fprintf(stderr, "has output");
+	    fprintf (stderr, ">%s", c->output);
+	  }
+	  fprintf(stderr, "\n");
+	}
+	else {
+	  fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, temp_type, command_label[cmd_type]);
+	}
+
 	command_indented_print (indent + 2 * (c->u.command[0]->type != c->type),
 				c->u.command[0]);
-	static char const command_label[][3] = { "&&", ";", "||", "|" };
+	//static char const command_label[][3] = { "&&", ";", "||", "|" };
 	printf (" \\\n%*s%s\n", indent, "", command_label[c->type]);
 	command_indented_print (indent + 2 * (c->u.command[1]->type != c->type),
 				c->u.command[1]);

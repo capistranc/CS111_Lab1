@@ -111,12 +111,13 @@ void InsertAtTail(struct command *cmd, struct linked_list *list) {
 
 struct command* RemoveAtTail(struct linked_list *list) {
 	if (list->head == NULL) {
-		return NULL;
+	  return NULL;
 	}
 	if (list->head->next == NULL) {
-		free(list->head);
-		list->head = NULL;
-		return list->head->child;
+	  struct command* retval = list->head->child;
+	  free(list->head);
+	  list->head = NULL;
+	  return retval;
 	}
 	struct Node* temp = list->head;
 	while (temp->next != NULL) temp = temp->next; // Go to last node
@@ -823,8 +824,8 @@ read_command_stream(command_stream_t s)
 	//return 0;
   
 	command_t cmd;
-	if ((cmd = RemoveAtHead(s->forrest)) == NULL) {
-		return 0;
+	if ((cmd = RemoveAtTail(s->forrest)) == NULL) {
+	  return 0;
 	}
 	return cmd;
 }
