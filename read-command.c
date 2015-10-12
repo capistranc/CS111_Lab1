@@ -703,6 +703,29 @@ char* create_buffer(int(*get_next_byte) (void *), void *get_next_byte_argument)
 	return buffer;
 }
 
+int precedence(struct command* cmd1) {
+  enum command_type cmd_type = cmd1->type;
+  switch (cmd_type) 
+    {
+    case PIPE_COMMAND: {
+      return 1;
+      break;
+    }
+    case OR_COMMAND:
+    case AND_COMMAND: {
+      return 2;
+      break;
+    }
+    case SEQUENCE_COMMAND: {
+      return 3;
+      break;
+    }
+    default: {
+      return -1;
+      break;
+    }
+    }
+}
 
 command_stream_t
 make_command_stream(int(*get_next_byte) (void *),
@@ -751,7 +774,7 @@ make_command_stream(int(*get_next_byte) (void *),
 					//evaulate both/build thier trees in the correct order
 					top_op = peek(op_stack);
 					//can compare enumerated types beacuse converted to ints in assembly
-					while ((top_op != NULL) && (next_token->type <= top_op->type)) {
+					while ((top_op != NULL) && (precedence(next_token) >= precedence(top_op))) {
 						op = RemoveAtHead(op_stack);
 						cmd2 = RemoveAtHead(cmd_stack);
 						cmd1 = RemoveAtHead(cmd_stack);
