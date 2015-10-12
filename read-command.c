@@ -256,12 +256,14 @@ void printTokenList(struct linked_list *list)
 	  static char const command_label[][3] = { "&&", ";", "||", "|" };
 	  if (cmd_type == SIMPLE_COMMAND) {
 	    fprintf(stderr, "%d,\t\t%d,\t\t%s",loc, temp_type, *(currentNode->child->u.word));
-	    if (currentNode->child->input != NULL)
-	      fprintf(stderr, "has input");
+	    if (currentNode->child->input != NULL) {
+	      //fprintf(stderr, "has input");
 	      fprintf (stderr, "<%s", currentNode->child->input);
-	    if (currentNode->child->output != NULL)
-	      fprintf(stderr, "has output");
-	      //fprintf (stderr, ">%s", currentNode->child->output);
+	    }
+	    if (currentNode->child->output != NULL) {
+	      //fprintf(stderr, "has output");
+	      fprintf (stderr, ">%s", currentNode->child->output);
+	    }
 	    fprintf(stderr, "\n");
 	  }
 	  else {
@@ -271,73 +273,45 @@ void printTokenList(struct linked_list *list)
   }
 }
 
+
 void io_redirect(struct linked_list *list) {
-  struct Node* current_node = list->head;
+  struct Node* cur_node = list->head;
   struct Node* tmp;
-  //we find the tail of the list and traverse backwards
-  while (current_node->next != NULL) {current_node = current_node->prev;}
-  token_type this_tok_type;
-  token_type prev_tok_type;
-  while (current_node != NULL && current_node->prev != NULL) {
-    this_tok_type = current_node->child->tok_type;
-    prev_tok_type = current_node->prev->child->tok_type;
-    //if this node specifies a redirect
-    if (this_tok_type == LEFT_ARROW || this_tok_type == RIGHT_ARROW) {
-      if (prev_tok_type == LEFT_ARROW || prev_tok_type == RIGHT_ARROW) {
-	//this node redundant, so we do nothing before remove it
-      }
-      else {
-	//we don't worry about the next and previoys nodes not being ismple commnad b/c grammar check handles that
-	//now we set the input output strings appropriately
-	char *buffer;
-	char *nxt_input = current_node->next->child->input;
-	char *nxt_output = current_node->next->child->output;
-	char *nxt_word = *(current_node->next->child->u.word);
-	if (nxt_input) {
-	  int size = sizeof(char)*(strlen(nxt_input) + strlen(nxt_word) + 1);
-	  buffer = (char *)malloc(size);
-	  strcpy(buffer, nxt_word);
-	  strcat(buffer, "<");
-	  strcat(buffer, nxt_input);
-	}
-	else if (nxt_output) {
-	  int size = sizeof(char)*(strlen(nxt_output) + strlen(nxt_word) + 1);
-	  buffer = (char*)malloc(size);
-	  strcpy(buffer, nxt_word);
-	  strcat(buffer, ">");
-	  strcat(buffer, nxt_output);
+  enum command_type this_type;
+  token_type next_tok_type;
+  while (cur_node->next != NULL) {
+    this_type = cur_node->child->type;
+    if (this_type == SIMPLE_COMMAND || this_type == SUBSHELL_COMMAND) {
+      next_tok_type = cur_node->next->child->tok_type;
+      if (next_tok_type == LEFT_ARROW || next_tok_type == RIGHT_ARROW) {
+	//store the token after the next's word in the appropriate io bin
+	char *word = *(cur_node->next->next->child->u.word);
+	if (next_tok_type == LEFT_ARROW) {
+	  cur_node->child->input = word;
 	}
 	else {
-	  int size = sizeof(char)*(strlen(nxt_word));
-	  buffer = (char*)malloc(size);
-	  strcpy(buffer, nxt_word);
+	  cur_node->child->output = word;
 	}
-
-	if (this_tok_type == LEFT_ARROW) {
-	  current_node->prev->child->input = buffer;
-	}
-	else if (this_tok_type == RIGHT_ARROW) {
-	  current_node->prev->child->output = buffer;
-	}
-
-	//now we remove the redirect token argument, because its information is storred in the buffer pointer
-	tmp = current_node->next;
-	current_node->next = current_node->next->next;
-	if (current_node->next != NULL) {
-	  current_node->next->prev = current_node;
-	}
+	//remove the io operator
+	tmp = cur_node->next;
+	cur_node->next->next->prev = cur_node;
+	cur_node->next = cur_node->next->next;
 	free(tmp);
+	//remove the io word
+	tmp = cur_node->next;
+        cur_node->next->next->prev = cur_node;
+        cur_node->next = cur_node->next->next;
+        free(tmp);
+	//update the next token type to reflect the node deletions
+	next_tok_type = cur_node->next->child->tok_type;
       }
-      //here we remove the current redirect token, already considered the argument, taking care to reset current_node
-      
-      current_node->prev->next = current_node->next;
-      current_node->next->prev = current_node->prev;
-      struct Node *tmp = current_node;
-      current_node = current_node->prev;
-      free(tmp);
+      else {
+	//not an io redirection so traverse to the next node
+	cur_node = cur_node->next;
+      }
     }
     else {
-      current_node = current_node->prev;
+      cur_node = cur_node->next;
     }
   }
 }
@@ -523,6 +497,8 @@ struct linked_list* create_token_list(char* buffer)
 	while ((buffer[iter] != '\0') && (buffer[iter] != EOF))
 	{
 		command_t temp = (command_t)checked_malloc(sizeof(command_t));
+		temp->input = NULL;
+		temp->output = NULL;
 		current = buffer[iter];
 		next = buffer[iter + 1];
 
@@ -740,6 +716,7 @@ make_command_stream(int(*get_next_byte) (void *),
 	printTokenList(tok_list);  //useful for debuffing
 	grammarCheck(tok_list);
 	io_redirect(tok_list);
+	printTokenList(tok_list);
 	
 	fprintf(stderr, "command stream construction begin\n");
 	
