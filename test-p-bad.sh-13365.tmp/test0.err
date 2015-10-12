@@ -1,0 +1,13 @@
+x
+Node Pos,	Command Type	Word Contained
+0,		0,		x
+1,		9,		;
+
+A successful grammarCheck has run.
+Node Pos,	Command Type	Word Contained
+0,		0,		x
+1,		9,		;
+command stream construction begin
+command tree complete
+  x
+

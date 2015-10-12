@@ -758,6 +758,14 @@ make_command_stream(int(*get_next_byte) (void *),
 	struct command* cmd1;
 	struct command* cmd2;
 	struct command* next_token;
+
+	//must pop newline off end of token list
+	struct command* end_token;
+	end_token = RemoveAtTail(tok_list);
+	if(end_token->type != SEQUENCE_COMMAND) {
+	  InsertAtTail(end_token, tok_list); 
+	}
+
 	while (!empty(tok_list)) 
 	{
 		while ((next_token = RemoveAtHead(tok_list)) != NULL) {
