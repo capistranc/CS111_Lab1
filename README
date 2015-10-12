@@ -12,3 +12,5 @@ into a set of commands that could then be sent through out algorithm to print ou
 Issues we ran into:
 We used the fprintf function to print information into stderr for debugging purposes. We didn't realize that this would cause the test cases to fail
 until several hours of attempting to debug it. Once we commented out all the debugging fprintf statements, we passed all the test cases swimmingly.
+     
+NOTE:  This is Amal Duriseti - my parnter accidently sumbited the wrong commit of our project.  This is the final version - please grade this one.  Thanks!
