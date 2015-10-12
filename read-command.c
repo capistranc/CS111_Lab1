@@ -15,6 +15,8 @@
 ////////////////Structure Definitions
 /////////////////////////////////////////////
 
+static void single_command_print(command_t cmd);
+
 struct linked_list
 {
 	struct Node* head;
@@ -251,10 +253,11 @@ void printTokenList(struct linked_list *list)
   fprintf(stderr, "Node Pos,\tCommand Type\tWord Contained\n");
   while (currentNode != NULL)
   {
-	  token_type temp_type = currentNode->child->tok_type;
-	  enum command_type cmd_type = currentNode->child->type;
+    token_type temp_type = currentNode->child->tok_type;
+    //single_command_print((command_t)currentNode);
+    enum command_type cmd_type = currentNode->child->type;
 	  int loc = currentNode->child->pos;
-	  static char const command_label[][3] = { "&&", ";", "||", "|" };
+	  static char const command_label[][3] = { "&&", ";", "||", "|", "S", "()" };
 	  if (cmd_type == SIMPLE_COMMAND) {
 	    fprintf(stderr, "%d,\t\t%d,\t\t%s",loc, temp_type, *(currentNode->child->u.word));
 	    if (currentNode->child->input != NULL) {
@@ -269,7 +272,7 @@ void printTokenList(struct linked_list *list)
 	  }
 	  else {
 	    fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, temp_type, command_label[cmd_type]);
-	  }
+	    }
 	  currentNode = currentNode->next;
   }
 }
@@ -429,14 +432,14 @@ void grammarCheck(struct linked_list *list)
 	    case LEFT_ARROW: {
 	      consecutive_left_arrow_count++;
 	      if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) 
-		  {
-			if (next_tok_type == this_tok_type) {
-			consecutive_left_arrow_count++;
+		{
+		  if (next_tok_type == this_tok_type) {
+		    consecutive_left_arrow_count++;
+		  }
+		  else {
+		    goto end_case;
+		  }
 		}
-		else {
-		  goto end_case;
-		}
-	      }
 	      if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
 		if (prev_tok_type == this_tok_type) {
 		  consecutive_left_arrow_count++;
@@ -494,7 +497,7 @@ void grammarCheck(struct linked_list *list)
 	    }
 	    default: {
 	      end_case:
-	      fprintf(stderr, "\n\nGrammarCheck Failed: Variable values:\n this_tok_type: %d\t, next_tok_type: %d\n", this_tok_type, next_tok_type);
+	      fprintf(stderr, "\n\nGrammarCheck Failed: Variable values:\n this_tok_type: %d\t, next_tok_type: %d\n, Scope:%d\t", this_tok_type, next_tok_type, scope);
 	      error(1, 0, "line:%d Bad Syntax, Node pos: %d", currentNode->child->line, currentNode->child->pos);
 	      //goto end_Ccase
 	      break;
@@ -613,15 +616,15 @@ struct linked_list* create_token_list(char* buffer)
 		}
 		case '(':
 		{
-			temp->tok_type = RIGHT_PAREN;
+			temp->tok_type = LEFT_PAREN;
 			temp->type = SUBSHELL_COMMAND;
 			break;
 		}
 		case ')':
 		{
-			temp->tok_type = LEFT_PAREN;
-			temp->type = SUBSHELL_COMMAND;
-			break;
+		  temp->tok_type = RIGHT_PAREN;
+		  temp->type = SUBSHELL_COMMAND;
+		  break;
 		}
 		case '<':
 		{
@@ -735,6 +738,31 @@ char* create_buffer(int(*get_next_byte) (void *), void *get_next_byte_argument)
 	return buffer;
 }
 
+static void single_command_print(command_t c) {
+
+  fprintf(stderr, "EXAMINING:  \n");
+
+  token_type temp_type = c->tok_type;
+  enum command_type cmd_type = c->type;
+  int loc = c->pos;
+  static char const command_label[][3] = { "&&", ";", "||", "|" };
+  if (cmd_type == SIMPLE_COMMAND) {
+    fprintf(stderr, "%d,\t\t%d,\t\t%s",loc, temp_type, *(c->u.word));
+    if (c->input != NULL) {
+      fprintf(stderr, "has input");
+      fprintf (stderr, "<%s", c->input);
+    }
+    if (c->output != NULL) {
+      fprintf(stderr, "has output");
+      fprintf (stderr, ">%s", c->output);
+    }
+    fprintf(stderr, "\n");
+  }
+  else {
+    fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, temp_type, command_label[cmd_type]);
+  }
+}
+
 int precedence(struct command* cmd1) {
   enum command_type cmd_type = cmd1->type;
   switch (cmd_type) 
@@ -753,7 +781,7 @@ int precedence(struct command* cmd1) {
       break;
     }
     default: {
-      return -1;
+      return 10000;
       break;
     }
     }
@@ -772,7 +800,7 @@ make_command_stream(int(*get_next_byte) (void *),
 	//printTokenList(tok_list);  //useful for debuffing
 	grammarCheck(tok_list);
 	io_redirect(tok_list);
-	//printTokenList(tok_list);
+        //printTokenList(tok_list);
 	
 	//fprintf(stderr, "command stream construction begin\n");
 	
@@ -811,8 +839,9 @@ make_command_stream(int(*get_next_byte) (void *),
 			    else if(next_token->tok_type == RIGHT_PAREN)
 			      {
 				op = RemoveAtHead(op_stack);
-				while (op != NULL && op->tok_type != LEFT_PAREN) {
+				while (op != NULL && op->type != SUBSHELL_COMMAND) {
 				  //algorithm works the same way as before with the operators
+				  single_command_print(op);
 				  cmd2 = RemoveAtHead(cmd_stack);
 				  cmd1 = RemoveAtHead(cmd_stack);
 				  //new_cmd = combine(cmd1, cmd2, op);
@@ -821,9 +850,10 @@ make_command_stream(int(*get_next_byte) (void *),
 				  InsertAtHead(op, cmd_stack);
 				  op = RemoveAtHead(op_stack);
 				}
+				//single_command_print(op);
 				cmd1 = RemoveAtHead(cmd_stack);
-				op->u.subshell_command = cmd1;
-				InsertAtHead(op, cmd_stack);
+				next_token->u.subshell_command = cmd1;
+				InsertAtHead(next_token, cmd_stack);
 			      }
 			  }
 				//If operator stack is empty

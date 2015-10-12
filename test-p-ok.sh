@@ -29,6 +29,13 @@ g<h
 
 # This is a weird example: nobody would ever want to run this.
 a<b>c|d<e>f|g<h>i
+
+#a || (b | c)
+
+#(a | b && d) | sort my_balls.c > bitch || (oh no && c | d)
+
+#(this is || to test && how redirects word) > with || my code
+
 EOF
 
 cat >test.exp <<'EOF'
