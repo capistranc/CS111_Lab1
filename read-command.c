@@ -510,7 +510,7 @@ void grammarCheck(struct linked_list *list)
 	  error(1, 0, ":%d Bad Syntax caused by scope", scope_line);
 	}
 	
-	fprintf(stderr, "\nA successful grammarCheck has run.\n");
+	//fprintf(stderr, "\nA successful grammarCheck has run.\n");
 }
 
 struct linked_list* create_token_list(char* buffer)
@@ -770,7 +770,7 @@ make_command_stream(int(*get_next_byte) (void *),
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
 	//printTokenList(tok_list);  //useful for debuffing
-	//grammarCheck(tok_list);
+	grammarCheck(tok_list);
 	io_redirect(tok_list);
 	//printTokenList(tok_list);
 	
