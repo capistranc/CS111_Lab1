@@ -327,7 +327,8 @@ void grammarCheck(struct linked_list *list)
 
 	int scope = 0;
 	int scope_line = 0;
-
+	int consecutive_left_arrow_count = 0;
+	int consecutive_right_arrow_count = 0;
 	while (currentNode != NULL)
 	{
 	  token_type this_tok_type;
@@ -372,7 +373,10 @@ void grammarCheck(struct linked_list *list)
 	    prev_tok_type = OTHER;
 	    prev_type = OTHER;
 	  }
-		
+		if (this_tok_type != RIGHT_ARROW)
+			consecutive_right_arrow_count = 0;
+		if (this_tok_type != LEFT_ARROW)
+			consecutive_left_arrow_count = 0;
 	  switch (this_tok_type)
 	    {
 	    case WORD:
@@ -422,12 +426,12 @@ void grammarCheck(struct linked_list *list)
 	      }
 	      break;
 	    }
-	    case LEFT_ARROW:
-	    case RIGHT_ARROW: {
-	      int consecutive_arrow_count = 1;
-	      if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) {
-		if (next_tok_type == this_tok_type) {
-		  consecutive_arrow_count++;
+	    case LEFT_ARROW: {
+	      consecutive_left_arrow_count++;
+	      if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) 
+		  {
+			if (next_tok_type == this_tok_type) {
+			consecutive_left_arrow_count++;
 		}
 		else {
 		  goto end_case;
@@ -435,13 +439,39 @@ void grammarCheck(struct linked_list *list)
 	      }
 	      if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
 		if (prev_tok_type == this_tok_type) {
-		  consecutive_arrow_count++;
+		  consecutive_left_arrow_count++;
 		}
 		else {
 		  goto end_case;
 		}
 	      }
-	      if (consecutive_arrow_count > 2) {
+	      if (consecutive_left_arrow_count > 2) {
+		goto end_case;
+	      }
+	      break;
+	    }
+		
+		
+	    case RIGHT_ARROW: {
+	      consecutive_right_arrow_count++;
+	      if (next_type != SIMPLE_COMMAND && next_tok_type != LEFT_PAREN) 
+		  {
+			if (next_tok_type == this_tok_type) {
+			consecutive_right_arrow_count++;
+		}
+		else {
+		  goto end_case;
+		}
+	      }
+	      if (prev_type != SIMPLE_COMMAND && prev_tok_type != RIGHT_PAREN) {
+		if (prev_tok_type == this_tok_type) {
+		  consecutive_right_arrow_count++;
+		}
+		else {
+		  goto end_case;
+		}
+	      }
+	      if (consecutive_right_arrow_count > 2) {
 		goto end_case;
 	      }
 	      break;
