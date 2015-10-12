@@ -172,7 +172,7 @@ bool isValidChar(char c)
 {
 	return (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') ||
 		c == '!' || c == '%' || c == '+' || c == ',' || c == '-' || c == '.' || c == '/' ||
-		c == ':' || c == '@' || c == '^' || c == '_');
+		c == ':' || c == '@' || c == '^' || c == '_' || c == ' ');
 }
 //////////Primary Functions//////////////////
 ////////////////////////////////////////////
@@ -251,16 +251,94 @@ void printTokenList(struct linked_list *list)
   while (currentNode != NULL)
   {
 	  token_type temp_type = currentNode->child->tok_type;
+	  enum command_type cmd_type = currentNode->child->type;
 	  int loc = currentNode->child->pos;
-	  
-	  if (temp_type == WORD){
-		  fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, temp_type,*(currentNode->child->u.word));
+	  static char const command_label[][3] = { "&&", ";", "||", "|" };
+	  if (cmd_type == SIMPLE_COMMAND) {
+	    fprintf(stderr, "%d,\t\t%d,\t\t%s",loc, temp_type, *(currentNode->child->u.word));
+	    if (currentNode->child->input != NULL)
+	      fprintf(stderr, "has input");
+	      fprintf (stderr, "<%s", currentNode->child->input);
+	    if (currentNode->child->output != NULL)
+	      fprintf(stderr, "has output");
+	      //fprintf (stderr, ">%s", currentNode->child->output);
+	    fprintf(stderr, "\n");
 	  }
-	  else
-	  {
-		  fprintf(stderr, "%d,\t\t%d,\t\n",loc, temp_type);
+	  else {
+	    fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, temp_type, command_label[cmd_type]);
 	  }
 	  currentNode = currentNode->next;
+  }
+}
+
+void io_redirect(struct linked_list *list) {
+  struct Node* current_node = list->head;
+  struct Node* tmp;
+  //we find the tail of the list and traverse backwards
+  while (current_node->next != NULL) {current_node = current_node->prev;}
+  token_type this_tok_type;
+  token_type prev_tok_type;
+  while (current_node != NULL && current_node->prev != NULL) {
+    this_tok_type = current_node->child->tok_type;
+    prev_tok_type = current_node->prev->child->tok_type;
+    //if this node specifies a redirect
+    if (this_tok_type == LEFT_ARROW || this_tok_type == RIGHT_ARROW) {
+      if (prev_tok_type == LEFT_ARROW || prev_tok_type == RIGHT_ARROW) {
+	//this node redundant, so we do nothing before remove it
+      }
+      else {
+	//we don't worry about the next and previoys nodes not being ismple commnad b/c grammar check handles that
+	//now we set the input output strings appropriately
+	char *buffer;
+	char *nxt_input = current_node->next->child->input;
+	char *nxt_output = current_node->next->child->output;
+	char *nxt_word = *(current_node->next->child->u.word);
+	if (nxt_input) {
+	  int size = sizeof(char)*(strlen(nxt_input) + strlen(nxt_word) + 1);
+	  buffer = (char *)malloc(size);
+	  strcpy(buffer, nxt_word);
+	  strcat(buffer, "<");
+	  strcat(buffer, nxt_input);
+	}
+	else if (nxt_output) {
+	  int size = sizeof(char)*(strlen(nxt_output) + strlen(nxt_word) + 1);
+	  buffer = (char*)malloc(size);
+	  strcpy(buffer, nxt_word);
+	  strcat(buffer, ">");
+	  strcat(buffer, nxt_output);
+	}
+	else {
+	  int size = sizeof(char)*(strlen(nxt_word));
+	  buffer = (char*)malloc(size);
+	  strcpy(buffer, nxt_word);
+	}
+
+	if (this_tok_type == LEFT_ARROW) {
+	  current_node->prev->child->input = buffer;
+	}
+	else if (this_tok_type == RIGHT_ARROW) {
+	  current_node->prev->child->output = buffer;
+	}
+
+	//now we remove the redirect token argument, because its information is storred in the buffer pointer
+	tmp = current_node->next;
+	current_node->next = current_node->next->next;
+	if (current_node->next != NULL) {
+	  current_node->next->prev = current_node;
+	}
+	free(tmp);
+      }
+      //here we remove the current redirect token, already considered the argument, taking care to reset current_node
+      
+      current_node->prev->next = current_node->next;
+      current_node->next->prev = current_node->prev;
+      struct Node *tmp = current_node;
+      current_node = current_node->prev;
+      free(tmp);
+    }
+    else {
+      current_node = current_node->prev;
+    }
   }
 }
 
@@ -295,12 +373,13 @@ void grammarCheck(struct linked_list *list)
 	  int loc = currentNode->child->pos;
 	  //This simply prints the token contents - useful for debugging
 	  
+	  /*
 	  if (this_tok_type == WORD) {
 	    fprintf(stderr, "%d,\t\t%d,\t\t%s\n",loc, this_tok_type,*(currentNode->child->u.word));
 	  }
 	  else {
 	    fprintf(stderr, "%d,\t\t%d,\t\n",loc, this_tok_type);
-	    }
+	    }*/
 	  
 	  if(currentNode->next != NULL) {
 	    next_tok_type = currentNode->next->child->tok_type;
@@ -543,12 +622,16 @@ struct linked_list* create_token_list(char* buffer)
 		{
 			temp->tok_type = LEFT_ARROW;
 			temp->type = SIMPLE_COMMAND;
+			temp->u.word = (char**)malloc(sizeof(char*));
+			*(temp->u.word) = "<";
 			break;
 		}
 		case '>':
 		{
 			temp->tok_type = RIGHT_ARROW;
 			temp->type = SIMPLE_COMMAND;
+			temp->u.word = (char**)malloc(sizeof(char*));
+			*(temp->u.word) = ">";
 			break;
 		}
 		default:
@@ -654,8 +737,9 @@ make_command_stream(int(*get_next_byte) (void *),
 	
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
-	//printTokenList(tok_list);  //useful for debuffing
+	printTokenList(tok_list);  //useful for debuffing
 	grammarCheck(tok_list);
+	io_redirect(tok_list);
 	
 	fprintf(stderr, "command stream construction begin\n");
 	
@@ -697,8 +781,16 @@ make_command_stream(int(*get_next_byte) (void *),
 						//of the operator to the two commands and pushing the
 						//operator onto the command stack
 						//fprintf(stderr, 'Combining commands and operator\n');
+						if (cmd1 == NULL || cmd2 == NULL) {
+						  fprintf(stderr, "Pushing null command onto stack - oops...");
+						}
+						static char const command_label[][3] = { "&&", ";", "||", "|" };
+						//fprintf(stderr, "\\\n%*s%s\n", 1, "", command_label[cmd1->type]);
+						//fprintf(stderr, "\\\n%*s%s\n", 1, "", command_label[cmd2->type]);
 						op->u.command[0] = cmd1;
 						op->u.command[1] = cmd2;
+						//fprintf(stderr, "\\\n%*s%s\n", 1, "", command_label[op->u.command[0]->type]);
+						//fprintf(stderr, "\\\n%*s%s\n", 1, "", command_label[op->u.command[1]->type]);
 						//here i operate on the highest precedent command first
 						//although in my notes i operate weith c instdead (idk why)
 						//fprintf(stderr, 'Pushing new operator onto command stack\n');
@@ -709,13 +801,13 @@ make_command_stream(int(*get_next_byte) (void *),
 					}
 					//c is now the highest precedence operator and should be evaulate
 					//first so we push onto operator stack now
-					fprintf(stderr, "Pushing next_token onto operator stack\n");
+					//fprintf(stderr, "Pushing next_token onto operator stack\n");
 					InsertAtHead(next_token, op_stack);
 				}
 			}
 			else {
 			  //next_token is a simple command so we just add it to the command stack
-			  fprintf(stderr, "Pushing next token onto command stack\n");
+			  //fprintf(stderr, "Pushing next token onto command stack\n");
 			  InsertAtHead(next_token, cmd_stack);
 			}
 		}
