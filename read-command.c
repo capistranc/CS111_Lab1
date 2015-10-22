@@ -800,7 +800,7 @@ make_command_stream(int(*get_next_byte) (void *),
 	//printTokenList(tok_list);  //useful for debuffing
 	grammarCheck(tok_list);
 	io_redirect(tok_list);
-        //printTokenList(tok_list);
+    printTokenList(tok_list);
 	
 	//fprintf(stderr, "command stream construction begin\n");
 	
