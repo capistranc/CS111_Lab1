@@ -876,8 +876,13 @@ make_command_stream(int(*get_next_byte) (void *),
 	word_cat(tok_list);
 	//printTokenList(tok_list);
 	io_redirect(tok_list);
+<<<<<<< HEAD
         //printTokenList(tok_list);
 		
+=======
+    printTokenList(tok_list);
+	
+>>>>>>> 7623d04362e0d0fbc528826bc3fb3cedd6acd864
 	//fprintf(stderr, "command stream construction begin\n");
 	
 	struct linked_list *op_stack = get_new_list();
