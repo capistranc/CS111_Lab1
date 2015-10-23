@@ -81,10 +81,10 @@ execute_command (command_t c, int time_travel)
 
 			pipe(pipefd); //pipefd[0] = read fd, pipefd[1] = write fd
 			
-			
-			if ( (leftPid = fork() )== 0) //Child 1
+			leftPid = fork();
+			if ( leftPid == 0) //Child 1
 			{
-				printf("leftPid start\n");
+				printf("leftPid start%d\n",leftPid);
 								close(pipefd[0]); //Close unused fd within child
 				dup2(pipefd[1], 1); // stores writefd into stdout
 				execute_command(c->u.command[0], time_travel); //
@@ -96,9 +96,11 @@ execute_command (command_t c, int time_travel)
 			}
 			else //[Parent process
 			{
-				if ( (rightPid = fork()) == 0) // Child 2
+				waitpid(-1, &status, 0);
+				rightPid = fork();
+				if (rightPid  == 0) // Child 2
 				{
-					printf("rightPid start\n");
+					printf("rightPid start:%d\n", rightPid);
 					close(pipefd[1]); //Close unused fd within child
 					dup2(pipefd[0], 0);
 					execute_command(c->u.command[1], time_travel);
@@ -112,9 +114,10 @@ execute_command (command_t c, int time_travel)
 					close(pipefd[0]);
 					close(pipefd[1]);
 					
-					returnPid = waitpid(-1, &status, 0);
+					waitpid(-1, &status, 0);
 					
-					printf("WHAT PID IS THIS?: %d\n", returnPid);
+					
+					//printf("WHAT PID IS THIS?: %d\n", returnPid);
 					//I DONT KNOW WHERE MY KIDS ARE
 					//WHERE ARE THEY?
 					//HAAAAALP AHHHHHHHHH

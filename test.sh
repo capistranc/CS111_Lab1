@@ -1,4 +1,6 @@
 #! /bin/sh
-ls | cat
 
 
+
+
+ls | cat > newfile.txt
