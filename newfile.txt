@@ -13,6 +13,7 @@ lab1.zip
 main.c
 main.o
 Makefile
+newfile.txt
 print-command.c
 print-command.o
 read-command-backup.c
@@ -25,7 +26,7 @@ test.err
 testFileAmal.txt
 test.out
 test-p-bad.sh
+test-p-bad.sh-7289.tmp
 test-p-ok.sh
 test.sh
 timetrash
-exit status: 0
