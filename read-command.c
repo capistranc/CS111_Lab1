@@ -173,9 +173,15 @@ printf("\n");
 
 bool isValidChar(char c)
 {
+  //used when we don't want to concatenate the words immediately, correct way
 	return (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') ||
 		c == '!' || c == '%' || c == '+' || c == ',' || c == '-' || c == '.' || c == '/' ||
-		c == ':' || c == '@' || c == '^' || c == '_'  ||  c == ' ');
+		c == ':' || c == '@' || c == '^' || c == '_');
+	//used initally, when I didn't realize how the word double pointer was supposed to work
+	/*return (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') ||
+                c == '!' || c == '%' || c == '+' || c == ',' || c == '-' || c == '.' || c == '/' ||
+                c == ':' || c == '@' || c == '^' || c == '_'  ||  c == ' ');*/
+
 }
 //////////Primary Functions//////////////////
 ////////////////////////////////////////////
@@ -253,8 +259,8 @@ void printTokenList(struct linked_list *list)
   fprintf(stderr, "Node Pos,\tCommand Type\tWord Contained\n");
   while (currentNode != NULL)
   {
-    token_type temp_type = currentNode->child->tok_type;
     //single_command_print((command_t)currentNode);
+    token_type temp_type = currentNode->child->tok_type;
     enum command_type cmd_type = currentNode->child->type;
 	  int loc = currentNode->child->pos;
 	  static char const command_label[][3] = { "&&", ";", "||", "|", "S", "()" };
@@ -277,19 +283,78 @@ void printTokenList(struct linked_list *list)
   }
 }
 
+void word_cat(struct linked_list *list) {
+  struct Node* cur_node = list->head;
+  struct Node* tmp;
+  token_type this_type;
+  token_type next_type;
+  int this_num_words;
+  int next_num_words;
+  int i;
+  while (cur_node->next != NULL) {
+    this_type = cur_node->child->tok_type;
+    next_type = cur_node->next->child->tok_type;
+    this_num_words = cur_node->child->num_words;
+    //this command and next are words, so we concatenate them
+    if (this_type == WORD && next_type == WORD) {
+      char** word_buff = cur_node->child->u.word;
+      char** this_word = cur_node->child->u.word;
+      char** this_tmp = this_word;
+      char** next_word = cur_node->next->child->u.word;
+      char** next_tmp = next_word;
+      //merge the sequence of char pointers in this and the next commands word** double pointer into a single double pointer array in this command
+      this_num_words = cur_node->child->num_words;
+      next_num_words = cur_node->next->child->num_words;
+      word_buff = (char **)malloc(sizeof(char*)*(this_num_words + next_num_words + 1));
+      for (i = 0; i < this_num_words; i++) {
+	word_buff[i] = this_word[i];
+	//fprintf(stderr, "%d:%s ", i, *(word_buff + i));
+      }
+      for (i = 0; i < next_num_words; i++) {
+	word_buff[i + this_num_words] = next_word[i];
+	cur_node->child->num_words++;
+	//fprintf(stderr, "%d:%s ", i + this_num_words, *(word_buff + i + this_num_words));
+      }
+      word_buff[this_num_words + next_num_words] = NULL;
+      //fprintf(stderr, "\n");
+      //fprintf(stderr, "%d\n", cur_node->child->num_words);
+      //free this and the next word
+      free(next_tmp);
+      free(this_tmp);
+      //set this word buffer to the sequence of char pointers we created
+      cur_node->child->u.word = word_buff;
+      //print_command(cur_node->child);
+      //remove the next node as we have extracted the useful relevant information
+      tmp = cur_node->next;
+      cur_node->next->next->prev = cur_node;
+      cur_node->next = cur_node->next->next;
+      free(tmp);
+    }
+    //not a concatenation so traverse to next node
+    else {
+      cur_node = cur_node->next;
+    }
+  }
+}
+      
 
 void io_redirect(struct linked_list *list) {
   struct Node* cur_node = list->head;
   struct Node* tmp;
+  int next_num_words;
   enum command_type this_type;
   token_type next_tok_type;
   while (cur_node->next != NULL) {
     this_type = cur_node->child->type;
     if (this_type == SIMPLE_COMMAND || this_type == SUBSHELL_COMMAND) {
       next_tok_type = cur_node->next->child->tok_type;
+      next_num_words = cur_node->next->child->num_words;
       if (next_tok_type == LEFT_ARROW || next_tok_type == RIGHT_ARROW) {
 	//store the token after the next's word in the appropriate io bin
 	char *word = *(cur_node->next->next->child->u.word);
+	if (next_num_words > 1) {
+	  error(1, 0, "line:%d Bad Syntax, Node pos: %d", cur_node->child->line, cur_node->child->pos);
+	}
 	if (next_tok_type == LEFT_ARROW) {
 	  cur_node->child->input = word;
 	}
@@ -531,6 +596,7 @@ struct linked_list* create_token_list(char* buffer)
 		command_t temp = (command_t)checked_malloc(sizeof(command_t));
 		temp->input = NULL;
 		temp->output = NULL;
+		temp->num_words = 0;
 		current = buffer[iter];
 		next = buffer[iter + 1];
 
@@ -540,10 +606,16 @@ struct linked_list* create_token_list(char* buffer)
 		case '\t':
 		case ' ': 
 		{
-			iter++;
-			continue;
+		  //sets the blank command to a word for later parsing
+		  temp->tok_type = WORD;
+		  temp->tok_type = SIMPLE_COMMAND;
+		  //iterates over contiguous whitespace in the buffer
+		  while (buffer[iter] == ' ' || buffer [iter] == '\t') {
+		    iter++;
+		  }
+		  continue;
 		}
-		
+
 		case ';': 
 		{
 			temp->tok_type = SEMICOLON;
@@ -675,6 +747,8 @@ struct linked_list* create_token_list(char* buffer)
 				minibuf[len - 1] = '\0';
 			else
 				minibuf[len] = '\0';
+			
+			temp->num_words = 1;
 
 			*(temp->u.word) = minibuf;
 			iter += len - 1;
@@ -797,11 +871,13 @@ make_command_stream(int(*get_next_byte) (void *),
 	
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
-	//printTokenList(tok_list);  //useful for debuffing
 	grammarCheck(tok_list);
+	//printTokenList(tok_list);
+	word_cat(tok_list);
+	//printTokenList(tok_list);
 	io_redirect(tok_list);
         //printTokenList(tok_list);
-	
+		
 	//fprintf(stderr, "command stream construction begin\n");
 	
 	struct linked_list *op_stack = get_new_list();

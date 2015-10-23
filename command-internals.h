@@ -32,7 +32,8 @@ struct command
   token_type tok_type;
   int line;
   int pos;
-
+  
+  int num_words;
   
   // Exit status, or -1 if not known (e.g., because it has not exited yet).
   int status;

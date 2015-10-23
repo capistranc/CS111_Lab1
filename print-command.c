@@ -36,12 +36,21 @@ command_indented_print (int indent, command_t c)
 
     case SIMPLE_COMMAND:
       {
+	int i;
 	char **w = c->u.word;
 	printf ("%*s%s", indent, "", *w);
+	//fprintf (stdout, "%*s%s", indent, "", *w);
 	//fprintf (stderr, "%*s%s", indent, "", *w);
+	//fprintf (stderr, "%*s%s", indent, "", *w);
+	/*for (i = 1; i < c->num_words; i++) {
+	  fprintf(stderr, " %s", *(w+i));
+	  fprintf(stdout, " %s", *(w+i));
+	  }*/
 	while (*++w) {
+	  //printf (" %d", i++);
 	  printf (" %s", *w);
-	  printf (" %s", *w);
+	  //fprintf (stderr, " %d", i++);
+          //fprintf (stderr, " %s", *w);
 	}
 	break;
       }
@@ -74,6 +83,5 @@ print_command (command_t c)
   command_indented_print (2, c);
   
   putchar ('\n');
-  //fprintf(stderr, "\n");
   //fprintf(stderr, "\n");
 }
