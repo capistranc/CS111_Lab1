@@ -368,11 +368,13 @@ void io_redirect(struct linked_list *list) {
 				free(tmp);
 				//remove the io word
 				tmp = cur_node->next;
-				cur_node->next->next->prev = cur_node;
+				if (cur_node->next->next) {
+				  cur_node->next->next->prev = cur_node;
+				}
 				cur_node->next = cur_node->next->next;
 				free(tmp);
 				//update the next token type to reflect the node deletions
-				next_tok_type = cur_node->next->child->tok_type;
+				//next_tok_type = cur_node->next->child->tok_type;
 			}
 			else {
 				//not an io redirection so traverse to the next node
