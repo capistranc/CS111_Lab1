@@ -901,7 +901,7 @@ void *get_next_byte_argument)
 	//printTokenList(tok_list);
 	io_redirect(tok_list);
 
-	//printTokenList(tok_list);
+	printTokenList(tok_list);
 
 	//fprintf(stderr, "command stream construction begin\n");
 	
@@ -1034,7 +1034,7 @@ void *get_next_byte_argument)
 }
 
 command_t
-read_command_stream(command_stream_t s)
+read_command_stream(command_stream_t s) // Returns a command tree;
 {
 	/* FIXME: Replace this with your implementation too.  */
 	//error (1, 0, "command reading not yet implemented");

@@ -7,6 +7,17 @@
 
 #include "command.h"
 
+#include "alloc.h"
+#include "command-internals.h"
+#include <unistd.h>
+
+#include <sys/types.h> // for pid_t
+#include <sys/wait.h> // for waitpid
+#include <unistd.h> // for execvp, fork
+#include <stdio.h> // for fprintf
+#include <stdlib.h> // for exit
+#include <fcntl.h> // for file open constants
+
 static char const *program_name;
 static char const *script_name;
 
@@ -54,6 +65,12 @@ main (int argc, char **argv)
 
   command_t last_command = NULL;
   command_t command;
+  
+  if (time_travel == 1)
+  {
+	  executeTimeTravel(command_stream);
+	  return 0;
+  }
   while ((command = read_command_stream (command_stream)))
     {
       if (print_tree)
@@ -63,8 +80,9 @@ main (int argc, char **argv)
 	}
       else
 	{
+	  fprintf(stderr, "mainCHECKER %d\t", command->type);
 	  last_command = command;
-	  execute_command (command, time_travel);
+	  execute_command (command);
 	}
     }
 
