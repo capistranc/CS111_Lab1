@@ -69,7 +69,9 @@ main (int argc, char **argv)
   
   if (time_travel == 1)
   {
-	  executeTimeTravel(command_stream);
+	  
+	  int** matrix = create_dependecy_graph(command_stream);
+	  executeTimeTravel(command_stream, matrix);
 	  return 0;
   }
   while ((command = read_command_stream (command_stream)))

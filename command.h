@@ -1,4 +1,4 @@
- // UCLA CS 111 Lab 1 command interface
+// UCLA CS 111 Lab 1 command interface
 
 typedef struct command *command_t;
 typedef struct command_stream *command_stream_t;
@@ -9,7 +9,8 @@ char* make_buffer(int(*get_next_byte) (void *), void *get_next_byte_argument);
 struct linked_list* create_token_list(char* buffer);
 
 /* Create a command stream from LABEL, GETBYTE, and ARG.  A reader of
-   the command stream will invoke GETBYTE (ARG) to get the next byte.
+   the commandmake
+ stream will invoke GETBYTE (ARG) to get the next byte.
    GETBYTE will return the next input byte, or a negative number
    (setting errno) on failure.  */
 command_stream_t make_command_stream (int (*getbyte) (void *), void *arg);
