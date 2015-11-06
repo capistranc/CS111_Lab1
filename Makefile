@@ -11,11 +11,13 @@ TESTS = $(wildcard test*.sh)
 TEST_BASES = $(subst .sh,,$(TESTS))
 
 TIMETRASH_SOURCES = \
-  alloc.c \
-  execute-command.c \
-  main.c \
-  read-command.c \
-  print-command.c
+	alloc.c \
+	execute-command.c \
+	main.c \
+	read-command.c \
+	print-command.c \
+	dependency.c \
+	execute_parallel.c
 TIMETRASH_OBJECTS = $(subst .c,.o,$(TIMETRASH_SOURCES))
 
 DIST_SOURCES = \

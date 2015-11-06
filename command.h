@@ -30,6 +30,8 @@ void execute_command (command_t);
 int command_status (command_t);
 
 /* User added functions*/
-void executeTimeTravel(command_stream_t command_stream);
+int** create_dependecy_graph(command_stream_t command_stream);
+void executeTimeTravel(command_stream_t, int** dependency_graph);
+
 
 
