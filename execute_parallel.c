@@ -14,8 +14,6 @@
 
 #include <error.h>
 
-/* FIXME: You may need to add #include directives, macro definitions,
-static function definitions, etc.  */
 void find_dependency(int** dependency_graph, int* has_dependency, int num_cmds) {
 	//generate a 1 dimensional array describing whether processes have any dependencies
 	int i;

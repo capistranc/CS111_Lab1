@@ -895,6 +895,8 @@ void *get_next_byte_argument)
 	
 	
 	struct linked_list *tok_list = create_token_list(buffer); //need to define buffer
+
+	//printTokenList(tok_list);
 	grammarCheck(tok_list);
 	//printTokenList(tok_list);
 	word_cat(tok_list);
