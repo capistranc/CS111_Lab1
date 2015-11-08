@@ -1033,6 +1033,10 @@ void *get_next_byte_argument)
 	return (command_stream_t)cmd_stream;
 }
 
+int length_command_stream(command_stream_t s) {
+	return length(s->forrest);
+}
+
 command_t
 read_command_stream(command_stream_t s) // Returns a command tree;
 {
