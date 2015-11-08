@@ -19,7 +19,7 @@ command_stream_t make_command_stream (int (*getbyte) (void *), void *arg);
    an error, report the error and exit instead of returning.  */
 command_t read_command_stream (command_stream_t stream);
 
-int command_stream_length(command_stream_t s);
+int length_command_stream(command_stream_t);
 
 /* Print a command to stdout, for debugging.  */
 void print_command (command_t);
@@ -36,5 +36,5 @@ int command_status (command_t);
 int** create_dependecy_graph(command_stream_t command_stream);
 void executeTimeTravel(command_stream_t, int** dependency_graph);
 
-
+void run_ready_commands(command_t *trees, int** dependency_graph, int* has_dependency, int* executable, int num_cmds);
 

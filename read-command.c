@@ -901,7 +901,7 @@ void *get_next_byte_argument)
 	//printTokenList(tok_list);
 	io_redirect(tok_list);
 
-	printTokenList(tok_list);
+	//printTokenList(tok_list);
 
 	//fprintf(stderr, "command stream construction begin\n");
 	

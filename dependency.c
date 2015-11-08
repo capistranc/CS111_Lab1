@@ -47,8 +47,8 @@ struct dependency_graph {
 //			Helper functions for the graph and nodes
 //Initializes nid = -1 and allocates memory for buffers
 node_t makeNewNode() {
-	unsigned int cap = 16;
-
+	unsigned int cap = 16;	
+	
 	node_t node = checked_malloc(sizeof(node_t));
 	node->dependency_count = 0;
 	node->readCount = 0;
@@ -82,42 +82,48 @@ dependency_graph_t makeNewGraph() {
 //				Helper functions for buildGraph
 //Populates (char**) graph->readFiles and (char **) graph->writeFiles.
 void appendIO(node_t node, command_t command) {
+  //printf("appendIO starting\n");
 	unsigned int numReads = node->readCount;
 	unsigned int numWrites = node->writeCount;
+	unsigned int readCap = node->readBufferCap;
+	unsigned int writeCap = node->writeBufferCap;
 
 	if (numReads == node->readBufferCap)
 	{
-		node->readBufferCap *= 1.5;
-		node->readFiles = (char **)checked_realloc(node->readFiles, sizeof(char*) * node->readBufferCap);
+		readCap += readCap;
+		node->readFiles = (char **)checked_realloc(node->readFiles, sizeof(char*) * readCap);
 	}
-	if (numWrites == node->writeBufferCap)
+	if (numWrites == writeCap)
 	{
-		node->writeBufferCap *= 1.5;
-		node->writeFiles = (char **)checked_realloc(node->writeFiles, sizeof(char*) * node->writeBufferCap);
+		writeCap += writeCap;
+		node->writeFiles = (char **)checked_realloc(node->writeFiles, sizeof(char*) * writeCap);
 	}
 
 
 	if (command->input != NULL)
 		node->readFiles[numReads++] = command->input;
 	if (command->output != NULL)
-		node->writeFiles[numWrites++] = command->input;
+		node->writeFiles[numWrites++] = command->output;
 
-	char** words = command->u.word;
-	// start at word[1] since word[0] is the name of the command
-	unsigned int i = 1;
-	for (; words[i] != NULL; i++)
+	if (command->type == SIMPLE_COMMAND)
 	{
-		// if the first char of the string is not a -
-		if (numReads >= node->readBufferCap)
-		{
-			node->readBufferCap *= 1.5;
-			node->readFiles = (char **)checked_realloc(node->readFiles, sizeof(char*) * node->readBufferCap);
-		}
-		if (words[i][0] != '-') {
-			node->readFiles[numReads++] = words[i];
-		}
-	}
 
+		char** words = command->u.word;
+		// start at word[1] since word[0] is the name of the command
+		unsigned int i;
+		for (i = 1; words[i] != NULL; i++)
+		{
+			// if the first char of the string is not a -
+			if (numReads >= readCap - 1)
+			{
+				readCap += readCap;
+				node->readFiles = (char **)checked_realloc(node->readFiles, sizeof(char*) * readCap);
+			}
+			if (words[i][0] != '-')
+				node->readFiles[numReads++] = words[i];
+		}
+
+	}
 	node->readCount = numReads;
 	node->writeCount = numWrites;
 
@@ -125,7 +131,7 @@ void appendIO(node_t node, command_t command) {
 
 //Recursive function for creating the file list from the given command tree
 void setRWfiles(node_t node, command_t command) {
-
+  //printf("setRWfiles starting\n");
 	switch (command->type)
 	{
 	case SIMPLE_COMMAND:
@@ -155,114 +161,216 @@ void setRWfiles(node_t node, command_t command) {
 
 
 dependency_graph_t buildGraph(command_stream_t command_stream) {
+
+  //printf("buildGraph starting\n");
 	dependency_graph_t graph = makeNewGraph();
 
 	int count = 0;
 	command_t command = NULL;
-
+	unsigned int i;
 	while ((command = read_command_stream(command_stream)))
 	{
 		node_t temp = makeNewNode();
 		temp->nid = count;
 		setRWfiles(temp, command);
-
+		/*
+		//printf("node[%d], read: %d write: %d \n", count, temp->readCount, temp->writeCount);
+		//printf("readFiles: ");
+	       for (i = 0; i < temp->readCount; i++)
+			printf("%s ", temp->readFiles[i]);
+		//printf("\nwriteFiles: ");
+		//for (i = 0; i < temp->writeCount; i++)
+		//	printf("%s ", temp->writeFiles[i]);
+		*/
 		if ((unsigned int)count == graph->capacity)
-		{
 			graph->capacity *= 1.5;
 			graph->nodeArray = (node_t *)checked_realloc(graph->nodeArray, sizeof(node_t) * graph->capacity);
-		}
+		
 		graph->nodeArray[count++] = temp;
-	}
+	}	
 
 	graph->len = count;
 	return graph;
 }
 
 //Helper functons for connectGraph
-void findRAW(node_t first, node_t dependent) //COMPLETE
-{
+void printDependenceRow(node_t node, unsigned int length) {
+	printf("node[%d] : ", node->nid);
 	unsigned int i = 0;
-	unsigned int j = 0;
+	for (; i < length; i++)
+		printf("%d ", node->dependence_row[i]);
+	printf("\n");
+}
 
-	for (;i < first->writeCount; i++)
+void findRAW(node_t first, node_t dependent) {
+	
+	if (dependent->dependence_row[first->nid] == 1)
+		return;
+	
+	unsigned int i,j;
+	for (i = 0; i < first->writeCount; i++)
 	{
-		for (; j < dependent->readCount; j++)
+		if (first->writeFiles[i] == NULL)
+				break;
+
+		for (j = 0; j < dependent->readCount; j++) 
+		{
+			if (dependent->readFiles[j] == NULL)
+				break;
+			
+//			printf("%s", first->writeFiles[i]);
 			if (strcmp(first->writeFiles[i], dependent->readFiles[j]) == 0)
 			{
 				dependent->dependence_row[first->nid] = 1;
-				break;
+				return;
 			}
+		}
+	}
+	
+}
+
+void findWAR(node_t first, node_t dependent) {
+
+	if (dependent->dependence_row[first->nid] == 1)
+		return;
+	
+	
+	unsigned int i,j;
+	
+	if (first->nid < 0)
+		error(1,0, "bad nid");
+	for (i = 0; i < dependent->writeCount; i++)
+	{
+		if (dependent->writeFiles[i] == NULL)
+				break;
+
+		for (j = 0; j < first->readCount; j++) 
+		{
+
+			if (first->readFiles[j] == NULL)
+				break;	
+
+			if (strcmp(first->readFiles[j], dependent->writeFiles[i]) == 0)
+			{
+				dependent->dependence_row[first->nid] = 1;
+				return;
+			}
+		}
 	}
 
 }
 
-void findWAR(node_t first, node_t dependent) //NOT FINISHED
-{
+void findWAW(node_t first, node_t dependent) {
+		
 	unsigned int i = 0;
 	unsigned int j = 0;
 
-	for (;i < first->readCount; i++)
+	for (i = 0;i < first->writeCount; i++)
 	{
-		for (; j < dependent->writeCount; j++)
-			if (strcmp(first->readFiles[i], dependent->writeFiles[j]) == 0)
+		if (first->writeFiles[i] == NULL)
+			break;
+
+		for (j = 0; j < dependent->writeCount; j++)
+		  {
+		
+			if (dependent->writeFiles[j] == NULL)
+				break;
+			unsigned int k = 0;
+		
+		  
+
+			if (strcmp(first->writeFiles[i] , dependent->writeFiles[j]) == 0)
 			{
 				dependent->dependence_row[first->nid] = 1;
-				break;
+				//printf("depRow : %d", dependent->dependence_row[first->nid]);
+				return;
 			}
-	}
-
-}
-
-void findWAW(node_t first, node_t dependent) //NOT FINISHED
-{
-	unsigned int i = 0;
-	unsigned int j = 0;
-
-	for (;i < first->writeCount; i++)
-	{
-		for (; j < dependent->writeCount; j++)
-			if (strcmp(first->writeFiles[i], dependent->writeFiles[j]) == 0)
-			{
-				dependent->dependence_row[first->nid] = 1;
-				break;
-			}
+		  }
 	}
 
 }
 
 void connectGraph(dependency_graph_t graph) {
-
-	unsigned int i = 0;
-	unsigned int j = 0;
+  //printf("connectGraph starting\n");
+	unsigned int i,j;
+	
 	unsigned int length = graph->len;
-
-	for (; i < length - 1; i++)
+	//printf("len: %d\n", length);
+	
+	for (i = 0; i < length - 1; i++)
 	{
 		for (j = i + 1; j < length; j++)
 		{
-			findRAW(graph->nodeArray[i], graph->nodeArray[j]);
+			//printf("node[%d][%d] WAW run 1\n", i, j);
 			findWAW(graph->nodeArray[i], graph->nodeArray[j]);
+			//printf(" RAW 2\n");
+			findRAW(graph->nodeArray[i], graph->nodeArray[j]);
+			//printf(" WAR 3\n");
 			findWAR(graph->nodeArray[i], graph->nodeArray[j]);
 		}
+	//printf("node[%d][%d] ith done \n", i, j);
 	}
+	//printf("done!\n");
+	
+	//printf("dependencyRowPrint\n");
+	//for (i = 0; i < length; i++)
+	 // printDependenceRow(graph->nodeArray[i], length);
+	
+	//printf("depPrintDone!\n");
+
+	
 	return;
+
 }
 
-int **createMatrix(dependency_graph_t graph)
+//Helper functions for making matrix
+int **createMatrix(dependency_graph_t graph) 
 {
-	int **matrix = (int **)checked_malloc(graph->len * sizeof(int *));
-	unsigned int i = 0;
-	for (; i < graph->len; i++)
-		*matrix = graph->nodeArray[i]->dependence_row;
+	int length = graph->len;
+	int **matrix = (int **)checked_malloc((length+1) * sizeof(int *));
+	int i;
+	for (i = 0; i < length; i++) {
+	  matrix[i] = graph->nodeArray[i]->dependence_row;
+	}
 
 	return matrix;
 }
 
+void printMatrix(int ** m, int len) {
+	int i = 0;
+	int j = 0;
+
+	for (;i < len; i++) 
+	{
+		for (j = 0;j < len; j++)
+		{
+			printf("%d ", m[i][j]);
+		}
+		printf("\n");
+	}
+}
+
+//Main Function
 int** create_dependecy_graph(command_stream_t command_stream) {
 
 	dependency_graph_t graph = buildGraph(command_stream);
 	connectGraph(graph);
 	int **matrix = createMatrix(graph); //create
-	error(1, 0, "Not implemented yet\n");
+	
+	//Test matrix for printer
+	/*
+	int i, j;
+	int **test = (int **)checked_malloc(sizeof(int *) * 6);
+	for (i = 0; i < 5; i++) {
+		for (j = 0; j < 5; j++) 
+		{
+			test[i][j] = i + j;
+		}
+	}
+	
+	printMatrix(test, 5);
+	*/
+
+	//printMatrix(matrix, graph->len);
 	return matrix;
 }
