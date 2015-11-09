@@ -1,0 +1,26 @@
+LAB 1A
+Chris Capistran: 304-499-904
+Amal Duriseti: 904-331-855
+
+The general idea was to first store the script into a buffer which would then be parsed into a linked list of command tokens.
+From the linked list of command tokens, we stripped all the white space and unnecessary newlines. We checked the syntax by creating
+the function grammarCheck() which traversed the linked list of tokens and checked for any malformed syntax. If there was a syntax error,
+the program would exit and return the line number as desired in the spec. We then created an io_redirect function to parse the linked list
+into a set of commands that could then be sent through out algorithm to print out the desired tree.
+
+Issues we ran into:
+We used the fprintf function to print information into stderr for debugging purposes. We didn't realize that this would cause the test cases to fail
+until several hours of attempting to debug it. Once we commented out all the debugging fprintf statements, we passed all the test cases swimmingly.
+     
+NOTE:  This is Amal Duriseti - my parnter accidently sumbited the wrong commit of our project.  This is the final version - please grade this one.  Thanks!
+
+
+LAB 1B
+Chris Capistran: 304-499-904
+Amal Duriseti: 904-331-855
+
+Notes:
+-fixed some errors in the way the parser handles extra newlines/"missing" newlines
+-reworte the way words were stored in simple command - previously we stored an entire simple command into the first pointer in the word array, now we store one word per pointer in the word array    
+
+NOTE:  This is Amal Duriseti - grade this submittion as opposed to the older submision by my partner Chris
