@@ -147,6 +147,8 @@ int length(struct linked_list *list)
 		count++;
 	}
 	return count;
+
+	//return 2;
 }
 
 int empty(struct linked_list *list)

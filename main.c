@@ -69,10 +69,12 @@ main (int argc, char **argv)
   
   if (time_travel == 1)
   {
+    int num_cmds = length_command_stream(command_stream);
+    command_t *forrest = (command_t*)malloc(sizeof(command_t)*num_cmds);
+    int** matrix = create_dependecy_graph(command_stream, forrest);
 	  
-	  int** matrix = create_dependecy_graph(command_stream);
-	  executeTimeTravel(command_stream, matrix);
-	  return 0;
+    executeTimeTravel(forrest, matrix, num_cmds);
+
   }
   while ((command = read_command_stream (command_stream)))
     {

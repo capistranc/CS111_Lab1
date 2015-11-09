@@ -14,184 +14,6 @@
 
 #include <error.h>
 
-// UCLA CS 111 Lab 1 command execution
-#include "alloc.h"
-#include "command.h"
-#include "command-internals.h"
-#include <unistd.h>
-
-#include <string.h> // for strcmp
-#include <sys/types.h> // for pid_t
-#include <sys/wait.h> // for waitpid
-#include <unistd.h> // for execvp, fork
-#include <stdio.h> // for fprintf
-#include <stdlib.h> // for exit
-#include <fcntl.h> // for file open constants
-
-
-#include <error.h>
-
-/* FIXME: You may need to add #include directives, macro definitions,
-   static function definitions, etc.  */
-
-typedef struct node* node_t;
-typedef struct dependency_graph* dependency_graph_t;
-
-struct node {
-  int nid;
-
-  int *dependence_row;
-  unsigned int dependency_count;
-
-  unsigned int readCount;
-  unsigned int writeCount;
-
-  char **readFiles;
-  char **writeFiles;
-  size_t readBufferCap;
-  size_t writeBufferCap;
-
-};
-
-struct dependency_graph {
-  node_t *nodeArray;
-  size_t len;
-  size_t capacity;
-  int** dep_matrix; //This should be outside struct
-};
-
-//Helper functions for the graph and nodes
-//Initializes nid = -1 and allocates memory for buffers
-node_t makeNewNode() {
-  unsigned int cap = 16;
-
-  node_t node = checked_malloc(sizeof(node_t));
-  node->dependency_count = 0;
-  node->readCount = 0;
-  node->writeCount = 0;
-  node->nid = -1;
-  node->readBufferCap = cap;
-  node->writeBufferCap = cap;
-  node->dependence_row = (int *)checked_malloc(sizeof(int) * cap);
-  node->readFiles = (char **)checked_malloc(sizeof(char*) * cap);
-  node->writeFiles = (char **)checked_malloc(sizeof(char*) * cap);
-
-  return node;
-}
-
-//Initializes the graph and alocates memory for the array
-dependency_graph_t makeNewGraph() {
-  unsigned int cap = 16;
-
-  dependency_graph_t graph = (dependency_graph_t)checked_malloc(cap * sizeof(struct dependency_graph));
-
-  node_t *tempArray = (node_t *)checked_malloc(sizeof(node_t) * cap);
-  graph->nodeArray = tempArray;
-
-  graph->capacity = cap;
-  graph->len = 0;
-
-  return graph;
-}
-
-
-//Helper functions for buildGraph
-//Populates (char**) graph->readFiles and (char **) graph->writeFiles.
-void appendIO(node_t node, command_t command) {
-  printf("appendIO starting\n");
-  unsigned int numReads = node->readCount;
-  unsigned int numWrites = node->writeCount;
-  unsigned int readCap = node->readBufferCap;
-  unsigned int writeCap = node->writeBufferCap;
-
-  if (numReads == node->readBufferCap)
-    {
-      readCap += readCap;
-      node->readFiles = (char **)checked_realloc(node->readFiles, sizeof(char*) * readCap);
-    }
-  if (numWrites == writeCap)
-    {
-      writeCap += writeCap;
-      node->writeFiles = (char **)checked_realloc(node->writeFiles, sizeof(char*) * writeCap);
-    }
-
-
-  if (command->input != NULL)
-    node->readFiles[numReads++] = command->input;
-  if (command->output != NULL)
-    node->writeFiles[numWrites++] = command->output;
-
-  if (command->type == SIMPLE_COMMAND)
-    {
-
-      char** words = command->u.word;
-      // start at word[1] since word[0] is the name of the command
-      unsigned int i;
-      for (i = 1; words[i] != NULL; i++)
-	{
-	  // if the first char of the string is not a -
-	  if (numReads >= readCap - 1)
-	    {
-	      readCap += readCap;
-	      node->readFiles = (char **)checked_realloc(node->readFiles, sizeof(char*) * readCap);
-	    }
-	  if (words[i][0] != '-')
-	    node->readFiles[numReads++] = words[i];
-	}
-
-    }
-  node->readCount = numReads;
-  node->writeCount = numWrites;
-
-}
-
-//Recursive function for creating the file list from the given command tree
-void setRWfiles(node_t node, command_t command) {
-  printf("setRWfiles starting\n");
-  switch (command->type)
-    {
-    case SIMPLE_COMMAND:
-      {
-	appendIO(node, command);
-	break;
-      }
-
-    case SUBSHELL_COMMAND:
-      {
-	appendIO(node, command);
-	setRWfiles(node, command->u.subshell_command);
-	break;
-      }
-    case AND_COMMAND:
-    case SEQUENCE_COMMAND:
-    case OR_COMMAND:
-    case PIPE_COMMAND:
-      setRWfiles(node, command->u.command[0]);
-      setRWfiles(node, command->u.command[1]);
-      break;
-    default:
-      break;
-    }
-  return;
-}
-
-
-dependency_graph_t buildGraph(command_stream_t command_stream) {
-
-  printf("buildGraph starting\n");
-  dependency_graph_t graph = makeNewGraph();
-
-  int count = 0;
-  command_t command = NULL;
-  unsigned int i;
-  while ((command = read_command_stream(command_stream)))
-    {
-      node_t temp = makeNewNode();
-      temp->nid = count;
-      setRWfiles(temp, command);
-
-/* FIXME: You may need to add #include directives, macro definitions,
-static function definitions, etc.  */
 void find_dependency(int** dependency_graph, int* has_dependency, int num_cmds) {
 	//generate a 1 dimensional array describing whether processes have any dependencies
 	int i;
@@ -204,53 +26,82 @@ void find_dependency(int** dependency_graph, int* has_dependency, int num_cmds) 
 			}
 		}
 	}
+	/*printf("dependency: ");
+	for (i = 0; i < num_cmds; i++) {
+	  printf("%d", has_dependency[i]);
+	}
+	printf("\n");*/
 }
 
-void run_ready_commands(comand_t* trees, int** dependency_graph, int* has_dependency, int* executable, int num_cmds)
+void run_ready_commands(command_t* forrest, int** dependency_graph, int* has_dependency, int* executable, int num_cmds)
 {
 	//run commands with no dependency that are executable, i.e. not already running or not completed
 	int i;
 	int j;
 	int cmd_idx;
-	for (cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) {
-		if(has_dependency[cmd_idx] == 0 && executable[cmd_idx] == 1) {
+	printf("dependency: ");
+	int gogo = 0;
+	for (i = 0; i < num_cmds; i++) {
+	  if (has_dependency[i])
+	}
+	printf("\n");
+	printf("execustable: ");
+	for (i = 0; i < num_cmds; i++) {
+	  printf("%d", executable[i]);
+	}
+	printf("\n");
+	for (cmd_idx = 0; cmd_idx<num_cmds; cmd_idx ++) {
+	  if(!has_dependency[cmd_idx] && executable[cmd_idx]) {
 			pid_t pid = fork();
 			if (pid == 0) {
-				//make this command non-executable because we are about to run it
-				executable[cmd_idx] = 0;
-				execute_command(trees[cmd_idx]);
-				//finished executing command so we update the dependency graph to remove any dependencies on it
-				for (i = 0, i < num_cmds; i++) {
-					for (j = 0; j < num_cmds; j++) {
-						if (i == cmd_idx || j == cmd_idx) {
-							dependency_graph[i][j] == 0;
-						}
-					}
-				}
-				//now we update our dependency indicator using our updated dependency graph
-				find_dependency(dependency_graph, has_dependency, num_cmds);
-				//finally we call this function recursively to execute any executable commands who have had their dependencies resolved
-				run_ready_commands(trees, dependency_graph, has_dependency, executable, num_cmds);
+			  //make this command non-executable because we are about to run it
+			  printf("execute command %d\n", cmd_idx);
+			  executable[cmd_idx] = 0;
+			  execute_command(forrest[cmd_idx]);
+			  //finished executing command so we update the dependency graph to remove any dependencies on it
+			  //printf("dependcency graph\n");
+			  for (i = 0; i < num_cmds; i++) {
+			    for (j = 0; j < num_cmds; j++) {
+			      if (i == cmd_idx || j == cmd_idx) {
+				dependency_graph[i][j] = 0;
+			      }
+			      //printf("%d", dependency_graph[i][j]);
+			    }
+			    //printf("\n");
+			    }
+			  //now we update our dependency indicator using our updated dependency graph
+			  find_dependency(dependency_graph, has_dependency, num_cmds);
+			  //finally we call this function recursively to execute any executable commands who have had their dependencies resolved
+			  run_ready_commands(forrest, dependency_graph, has_dependency, executable, num_cmds);
+			  //while (1) {}
+			  //printf("child thread exit\n");
+			  return;
+			  //break;//_exit(1);
 			} else {
-				continue; //parent so continue making children
+			  continue; //parent so continue making children
 			}
 		}
+		//printf("parent thread continue\n");
 	}
+	//printf("parent function exit\n");
+	//while (1);
 }
 
-void executeTimeTravel(command_stream_t command_stream, int** dependency_graph)
+void executeTimeTravel(command_t* forrest, int** dependency_graph, int num_cmds)
 {
-	int num_cmds = command_stream_length(command_stream);
+  printf("parallel command execution\n");
+  int cmd_idx;
+	printf("num_cmds: %d\n", num_cmds);
 	int* has_dependency = (int*)malloc(sizeof(int)*num_cmds);
 	int* executable = (int*)malloc(sizeof(int)*num_cmds);
-	command_t* trees = (command_t*)malloc(sizeof(command_t)*num_cmds);
-	int cmd_idx = 0;
-	command_t command;
-	while ((command = read_command_stream(command_stream))) {
-		trees[cmd_idx] = command;
+        for (cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) {
+	  executable[cmd_idx] = 1;
+	  printf("execute command %d\n", cmd_idx);
+	  execute_command(forrest[cmd_idx]);
 	}
+	printf("PARRALELLIZED VERIOSN\n");
 	find_dependency(dependency_graph, has_dependency, num_cmds);
-	run_ready_commands(trees, dependency_graph, has_dependency, executable, num_cmds);
+	run_ready_commands(forrest, dependency_graph, has_dependency, executable, num_cmds);
 }
 
 	

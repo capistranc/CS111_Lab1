@@ -33,8 +33,8 @@ void execute_command (command_t);
 int command_status (command_t);
 
 /* User added functions*/
-int** create_dependecy_graph(command_stream_t command_stream);
-void executeTimeTravel(command_stream_t, int** dependency_graph);
+int** create_dependecy_graph(command_stream_t command_stream, command_t* forrest);
+void executeTimeTravel(command_t* forrest, int** dependency_graph, int num_cmds);
 
-void run_ready_commands(command_t *trees, int** dependency_graph, int* has_dependency, int* executable, int num_cmds);
+void run_ready_commands(command_t *forrest, int** dependency_graph, int* has_dependency, int* executable, int num_cmds);
 

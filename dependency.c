@@ -160,7 +160,7 @@ void setRWfiles(node_t node, command_t command) {
 }
 
 
-dependency_graph_t buildGraph(command_stream_t command_stream) {
+dependency_graph_t buildGraph(command_stream_t command_stream, command_t* forrest) {
 
   //printf("buildGraph starting\n");
 	dependency_graph_t graph = makeNewGraph();
@@ -170,6 +170,7 @@ dependency_graph_t buildGraph(command_stream_t command_stream) {
 	unsigned int i;
 	while ((command = read_command_stream(command_stream)))
 	{
+	  forrest[count] = command;
 		node_t temp = makeNewNode();
 		temp->nid = count;
 		setRWfiles(temp, command);
@@ -351,9 +352,9 @@ void printMatrix(int ** m, int len) {
 }
 
 //Main Function
-int** create_dependecy_graph(command_stream_t command_stream) {
+int** create_dependecy_graph(command_stream_t command_stream, command_t* forrest) {
 
-	dependency_graph_t graph = buildGraph(command_stream);
+  dependency_graph_t graph = buildGraph(command_stream, forrest);
 	connectGraph(graph);
 	int **matrix = createMatrix(graph); //create
 	

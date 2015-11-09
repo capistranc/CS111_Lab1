@@ -41,7 +41,7 @@ void handle_io(command_t c)
 
 void execute_command(command_t c)
 {
-	fprintf(stderr, "executeCHECKER %d\t", c->type);
+  //fprintf(stderr, "executeCHECKER %d\t", c->type);
 	switch (c->type) {
 	case SIMPLE_COMMAND: {	// i.e.  cat</etc/passwd Note: here the word stored is cat, *input stores /etc/passwd), tr a-z A-Z, g++ -c foo.c, echo sort failed!
 
@@ -60,7 +60,7 @@ void execute_command(command_t c)
 			else 
 			{ 	//parent process;
 				waitpid(pid, &status, 0); //Wait for child process to run before continuing.
-				printf("exit status: %d\n", WEXITSTATUS(status));
+				//yprintf("exit status: %d\n", WEXITSTATUS(status));
 				c->status = WEXITSTATUS(status);
 			}
 			break;
